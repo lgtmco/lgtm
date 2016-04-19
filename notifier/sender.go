@@ -2,7 +2,7 @@ package notifier
 
 import "golang.org/x/net/context"
 
-//go:generate mockery -name Notifier -output mock -case=underscore
+//go:generate mockery -name Sender -output mock -case=underscore
 
 // Sender defines a notification provider that is capable of sending out
 // notifications to a list of maintainers or reviewers. An example provider
