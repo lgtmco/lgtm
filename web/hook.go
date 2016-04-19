@@ -37,6 +37,14 @@ func Hook(c *gin.Context) {
 		return
 	}
 
+	rcfile, _ := remote.GetContents(c, user, repo, ".lgtm")
+	config, err := model.ParseConfig(rcfile)
+	if err != nil {
+		log.Errorf("Error parsing .lgtm file for %s. %s", repo.Slug, err)
+		c.String(500, "Error parsing .lgtm file. %s.", err)
+		return
+	}
+
 	// THIS IS COMPLETELY DUPLICATED IN THE API SECTION. NOT IDEAL
 	file, err := remote.GetContents(c, user, repo, "MAINTAINERS")
 	if err != nil {
@@ -59,14 +67,6 @@ func Hook(c *gin.Context) {
 	if err != nil {
 		log.Errorf("Error parsing MAINTAINERS file for %s. %s", repo.Slug, err)
 		c.String(500, "Error parsing MAINTAINERS file. %s.", err)
-		return
-	}
-
-	rcfile, _ := remote.GetContents(c, user, repo, ".lgtm")
-	config, err := model.ParseConfig(rcfile)
-	if err != nil {
-		log.Errorf("Error parsing .lgtm file for %s. %s", repo.Slug, err)
-		c.String(500, "Error parsing .lgtm file. %s.", err)
 		return
 	}
 
