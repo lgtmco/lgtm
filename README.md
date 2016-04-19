@@ -1,7 +1,2 @@
-![lgtm](https://avatars3.githubusercontent.com/u/16172772?v=3&s=200)
+LGTM is a simple pull request approval system using GitHub protected branches and simple MAINTAINERS files. For more informations see https://lgtm.co/docs
 
-# lgtm
-
-Discuss and file LGTM issues here
-
-Join our online chat at https://gitter.im/lgtmco/lgtm

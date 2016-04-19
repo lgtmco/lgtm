@@ -1,0 +1,13 @@
+lgtm
+*.sqlite
+*.db
+*.txt
+*_gen.go
+*.out
+.DS_Store
+.env
+bindata.go
+
+web/react/node_modules
+web/static/files/script.js
+#web/static/files/*.css

@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html ng-app="app" lang="en">
+	<head>
+		<title>LGTM</title>
+
+		<base href="/">
+		<meta charset="utf-8" />
+		<meta content="width=device-width, initial-scale=1" name="viewport" />
+		<meta content="ie=edge" http-equiv="x-ua-compatible" />
+		<link href="/static/favicon.ico" rel="icon" type="image/x-icon" />
+        <meta name="Description" content="Simple approval workflow for GitHub Pull Requests using comments. Built on the GitHub protected branch API." />
+
+        <link href="//fonts.googleapis.com/css?family=Roboto:400,300" rel="stylesheet" type="text/css">
+		<link href="//fonts.googleapis.com/css?family=Roboto+Mono" rel="stylesheet" type="text/css">
+        <link href="//cdnjs.cloudflare.com/ajax/libs/octicons/3.3.0/octicons.css" rel="stylesheet">
+		<link href="/static/styles.css" rel="stylesheet">
+
+	</head>
+	<body>
+        <div class="navbar navbar-homepage">
+            <div class="container cf">
+                <a href="" class="navbar-brand"></a>
+                <ul class="navbar-nav navbar-right">
+                    <li><a href="/login" class="button button-outlined">Login</a></li>
+                </ul>
+            </div>
+        </div>
+        <div class="banner">
+            <div class="banner-text container">
+                <h1>Simple Approvals for Pull Requests</h1>
+                <p>Works with GitHub <a href="#">protected branches</a> to enforce Pull Request approvals before merging.</p>
+                <div class="banner-actions">
+                    <a href="/login" class="button"><span class="octicon octicon-mark-github"></span>Sign In</a>
+                    <a href="https://lgtm.co/docs" class="button">Read the Docs</a>
+                </div>
+            </div>
+        </div>
+
+        <div class="feature">
+            <div class="container">
+                <h2>Setup Approvers</h2>
+                <p>Create a list of teammates and community members to approve pull requests, stored in the MAINTAINERS file in your repository.</p>
+
+				<div class="maintainers">
+					<div>6 lines (6 sloc)  128 Bytes</div>
+					<table>
+	                    <tr><td>1</td><td>Brad Rydzewski &lt;brad.rydzewski@mail.com&gt; (@bradrydzewski)</td></tr>
+	                    <tr><td>2</td><td>Matt Norris &lt;matt.norris@mail.com&gt; (@mattnorris)</td></tr>
+	                    <tr><td>3</td><td>Don Olmstead &lt;don.olmsteam@mail.com&gt; (@donny-dont)</td></tr>
+	                    <tr><td>4</td><td>Bob Hyrdinsky &lt;bob.hyrdinsky@mail.com&gt; (@thehyrdinsky)</td></tr>
+	                    <tr><td>5</td><td>Joe Taylor &lt;joe.taylor@mail.com&gt; (@joetaylorland)</td></tr>
+	                    <tr><td>6</td><td>Justin Keller &lt;justin.keller@mail.com&gt; (@nodesocket)</td></tr>
+					</table>
+                </div>
+            </div>
+        </div>
+
+        <div class="feature">
+            <div class="container">
+                <h2>Pending Approvals</h2>
+                <p>Pull Requests are reviewed by community members and team members and cannot be merged until all approvals are received.</p>
+            </div>
+            <div class="issues">
+                <div class="container">
+                    <div class="checks checks-pending">
+                        <div class="merge-icon" style="display:none">
+                            <span class="octicon octicon-git-merge"></span>
+                        </div>
+                        <div>
+                            <div>
+                                <strong>Some checks haven't completed yet</strong>
+                                <p>1 passed and 1 pending check</p>
+                            </div>
+                            <ul>
+                                <li><span class="octicon octicon-primitive-dot dot-green"></span> <em>Build</em> — <span>the build passed</span></li>
+                                <li><span class="octicon octicon-primitive-dot dot-yellow"></span> <em>Approvals</em> — <span>this commit is pending approval</span></li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+
+        <div class="feature">
+            <div class="container">
+                <h2>Approval Workflow</h2>
+                <p>Approvers comment on the issue with LGTM, <em>looks good to me</em>, indicating their approval to merge the changeset.</p>
+            </div>
+            <div class="issues issues-animate">
+                <div class="container">
+                    <div class="issue" id="comment-1" style="display:none">
+                        <img style="display:none" src="https://s3.amazonaws.com/uifaces/faces/twitter/athivvat/128.jpg" />
+                        <div>
+                            <div><em>bradrydzewski</em> commented just now</div>
+                            <div>LGTM</div>
+                        </div>
+                    </div>
+                    <div class="issue" id="comment-2" style="display:none">
+                        <img style="display:none" src="https://s3.amazonaws.com/uifaces/faces/twitter/athivvat/128.jpg" />
+                        <div>
+                            <div><em>mattnorris</em> commented just now</div>
+                            <div>LGTM</div>
+                        </div>
+                    </div>
+                    <div class="checks checks-pending">
+                        <div class="merge-icon" style="display:none;">
+                            <span class="octicon octicon-git-merge"></span>
+                        </div>
+                        <div>
+                            <div>
+                                <strong>Some checks haven't completed yet</strong>
+                                <p>1 passed and 1 pending check</p>
+                            </div>
+                            <ul>
+                                <li><span class="octicon octicon-primitive-dot dot-green"></span> <em>Build</em> — <span>the build passed</span></li>
+                                <li><span class="octicon octicon-primitive-dot dot-yellow"></span> <em>Approvals</em> — <span>this commit is pending approval</span></li>
+                            </ul>
+                            <div style="display:none">
+                                <div class="button"><span class="octicon octicon-git-merge"></span> Merge Pull Request</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="container cf hidden">
+            <div class='grid-flex-container pricing'>
+                <div class='grid-flex-cell'>
+                    <h2>Free</h2>
+                    <p>0</p>
+                </div>
+                <div class='grid-flex-cell'>
+                    <h2>Team</h2>
+                    <p>15</p>
+                </div>
+                <div class='grid-flex-cell'>
+                    <h2>Enterprise</h2>
+                    <p>Contact Us</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="ribbon">
+            <div class="container cf">
+                <a class="button button-outlined" href="/login"><span class="octicon octicon-mark-github"></span> Sign In</a>
+				<span class="separator">or</span>
+	            <a class="button button-outlined" href="https://lgtm.co/docs/install/">Download</a>
+            </div>
+        </div>
+        <div class="footer">
+            <div class="container cf">
+                made by <a href="https://github.com/bradrydzewski">@bradrydzewski</a>
+            </div>
+        <div>
+
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.0.0-alpha1/jquery.min.js"></script>
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/waypoints/4.0.0/jquery.waypoints.min.js"></script>
+        <script>
+        $(document).ready(function() {
+            $('.issues-animate').waypoint(function(direction) {
+                  $("#comment-1").delay(500).fadeIn(1000);
+                  $("#comment-2").delay(1500).fadeIn(1000, function() {
+                    //   setTimeout(function(){
+                          $(".issues-animate .checks strong").text("All checks have passed.")
+                          $(".issues-animate .checks p").text("2 successful checks.")
+                          $(".issues-animate .dot-yellow").addClass("dot-green").removeClass("dot-yellow");
+                          $(".issues-animate .checks li:last-child span:last-child").text("this commit looks good");
+                          $(".issues-animate .checks-pending").addClass("checks-success").removeClass("checks-pending");
+                          $(".issues-animate .checks > div > div:last-child").delay(0).fadeIn(1000);
+                    //   }, 700);
+                  });
+          },{offset:"50%"})
+        })
+        </script>
+
+		<script>
+		  if (window.location.hostname==='lgtm.co') {
+			  (function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){
+			  (i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),
+			  m=s.getElementsByTagName(o)[0];a.async=1;a.src=g;m.parentNode.insertBefore(a,m)
+			  })(window,document,'script','//www.google-analytics.com/analytics.js','ga');
+			  ga('create', 'UA-71116539-1', 'auto');
+			  ga('send', 'pageview');
+		  }
+		</script>
+	</body>
+</html>

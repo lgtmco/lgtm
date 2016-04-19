@@ -1,0 +1,31 @@
+debug: true
+
+build:
+  image: golang:1.5
+  environment:
+    - GO15VENDOREXPERIMENT=1
+  commands:
+    - make deps
+    - make gen
+    - make test
+    - make test_mysql
+    - make build
+
+compose:
+  mysql:
+    image: mysql:5.6.27
+    environment:
+      - MYSQL_DATABASE=test
+      - MYSQL_ALLOW_EMPTY_PASSWORD=yes
+
+#publish:
+#  docker:
+#    username: drone
+#    password: $$DOCKER_PASS
+#    email: $$DOCKER_EMAIL
+#    repo: lgtm/lgtm
+#    tag:
+#      - "latest"
+#      - "1.0.0"
+#    when:
+#      branch: master

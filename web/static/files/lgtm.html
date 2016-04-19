@@ -1,0 +1,193 @@
+
+<style>
+html, body, h1, h2, h3, p {font-family:"Roboto"}
+body {border:none;}
+a.navbar-brand {
+    position:relative;
+}
+a.navbar-brand:after {
+    content: "beta";
+    position: absolute;
+    right: -40px;
+    font-size: 12px;
+    text-transform: uppercase;
+    color: #E48125;
+    border: 1px solid #E48125;
+    padding: 0px 8px;
+    border-radius: 3px;
+}
+.navbar-nav.navbar-right li a {
+    color: #333;
+    margin-right: 13px;
+    font-size: 15px;
+}
+.side-nav {    border-bottom: none;margin-right:10px}
+.side-nav img { border-radius:3px; width:28px;height:28px;vertical-align: middle;margin-right:10px;}
+.side-nav li {text-align:left;}
+.side-nav li span {line-height:32px;vertical-align: middle; color:#000;}
+.side-nav li a {position:relative}
+.side-nav li a.current-item:before {
+    position: absolute;
+    top: -1px;
+    bottom: -1px;
+    width: 3px;
+    background: #E48125;
+    content: " ";
+    left: -1px;
+}
+.grid-flex-cell {
+    border:none;
+}
+.list-repos {
+    text-align: left;
+    border: none;
+}
+.list-repos li {
+    position:relative;
+    /*min-height:100px;*/
+    border: 1px solid #e6eaed;
+    border-bottom:none;
+    padding: 25px 25px;
+}
+.list-repos li:last-child {
+    border-bottom: 1px solid #e6eaed;
+}
+.list-repos button {
+    position:absolute;
+    top:20px;
+    right:20px;
+    font-size:14px;
+    border-width:1px;
+    padding: 3px 15px;
+    width:70px;
+    background:#FFF;
+}
+.list-repos button.button-outlined-approve {
+    border-width:2px;
+}
+.list-repos button.button-outlined-neutral {
+    color: #e6eaed;
+    border-color: #e6eaed;
+}
+.list-repos h3 {
+    line-height:18px;
+    vertical-align: middle;
+    font-size:18px;
+    margin-bottom:0px;
+    font-weight: 400;
+}
+.list-repos h3 a {
+    line-height:18px;
+    margin-left: 5px;
+    display:none;
+}
+.list-repos h3 a i {
+    font-size:16px;
+}
+.list-repos li:hover h3 a {
+    display:inline;
+}
+.list-repos a {
+    color: #AAA;
+    font-family: "ROBOTO";
+    font-weight: 300;
+    margin-top:7px;
+    text-decoration:none;
+    line-height: 24px;
+    display:block;
+}
+.list-repos a i,
+.list-repos a span {
+    vertical-align: middle;
+}
+@media screen and (min-width: 901px) {
+.container {
+    width: 100%;
+    max-width:1100px;
+}
+.grid-flex-cell-1of3 {
+    max-width:350px;
+}
+}
+
+.navbar {
+    border-bottom: 1px solid #e6eaed;
+}
+.modal-title {
+    font-size: 24px;
+}
+.modal-head{
+    border-bottom:none;
+}
+.modal-body {
+    line-height:16px;
+    padding: 32px 20px;
+}
+.modal-body input{
+    float: left;
+    margin-right: 21px;
+}
+.modal-body select {
+    margin-top:15px;
+}
+.modal-body label {
+    font-size: 16px;
+    font-weight: normal;
+}
+.message {
+    margin-top:0px;
+    margin-bottom:30px;
+}
+</style>
+
+<div class="navbar">
+    <div class="container cf">
+        <a href="" class="navbar-brand"></a>
+        <ul class="navbar-nav navbar-right">
+            <li><a href="https://lgtm.co/docs" target="_blank">docs</a></li>
+            <li><a href="https://lgtm.co/docs/support/" target="_blank">help</a></li>
+            <li><a href="/logout" target="_self">logout</a></li>
+            <li><img ng-src="{{user.avatar}}" /></li>
+        </ul>
+    </div>
+</div>
+<div>
+    <div class="container">
+        <div class='grid-flex-container'>
+          <div class='grid-flex-cell grid-flex-cell-1of3'>
+              <nav role='navigation'>
+                  <ul class='list-unstyled side-nav'>
+                      <li ng-repeat="o in orgs">
+                          <a ng-href="/{{o.login}}" ng-class="{'current-item': o.login === org.login}">
+                              <img ng-src="{{o.avatar}}" />
+                              <span>{{o.login}}</span>
+                          </a>
+                      </li>
+                  <ul>
+              </nav>
+          </div>
+          <div class='grid-flex-cell'>
+              <div class="message" ng-if="repos && (repos|filter: { owner: org.login }).length == 0">There are no repositories to manage.</div>
+              <div class="message message-error" ng-if="error">{{error.data}}</div>
+              <ul class="list-unstyled list-repos">
+                  <li ng-repeat="repo in repos | filter: { owner: org.login }">
+                      <h3>{{ repo.slug }} <a target="_blank" ng-if="repo.id" ng-href="{{repo.link_url + '/settings/branches'}}"><i class="material-icons">link</i></a></h3>
+                      <button ng-if="repo.id"  ng-click="delete(repo)"  class="button button-outlined-approve">ON</button>
+                      <button ng-if="!repo.id" ng-click="edit(repo)" class="button button-outlined-neutral">OFF</button>
+                  </li>
+              </ul>
+          </div>
+        </div>
+    </div>
+</div>
+
+<div ng-if="repo" class="overlay"></div>
+<div ng-if="repo" class="modal">
+    <div class='modal-head cf'>
+      <h3 class='modal-title'>{{repo.slug}}</h3>
+      <a href="" class="modal-close" ng-click="close()">×</a>
+    </div>
+    <div class="modal-footer">
+        <button class="button button-outlined-approve" ng-click="activate(repo, link, link_to)" ng-if="!repo.conf_url" ng-disabled="saving">Activate</button>
+    </div>
+</div>
