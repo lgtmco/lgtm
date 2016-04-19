@@ -1,6 +1,5 @@
 package mock
 
-import "github.com/lgtmco/lgtm/cache"
 import "github.com/stretchr/testify/mock"
 
 type Cache struct {

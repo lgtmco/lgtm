@@ -3,9 +3,11 @@ build:
     image: golang:1.6
     commands:
       - make deps
+      - make gen_assets gen_migration
       - make test
   dist:
     image: golang:1.6
+    commands:
      - make test_mysql
      - make build
     when:
