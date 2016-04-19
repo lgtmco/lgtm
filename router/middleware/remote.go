@@ -3,7 +3,7 @@ package middleware
 import (
 	"strings"
 
-	"github.com/bradrydzewski/lgtm/remote/github"
+	"github.com/lgtmco/lgtm/remote/github"
 
 	"github.com/gin-gonic/gin"
 	"github.com/ianschenck/envflag"

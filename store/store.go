@@ -3,7 +3,7 @@ package store
 import (
 	"path"
 
-	"github.com/bradrydzewski/lgtm/model"
+	"github.com/lgtmco/lgtm/model"
 
 	"golang.org/x/net/context"
 )

@@ -3,8 +3,8 @@ package datastore
 import (
 	"testing"
 
-	"github.com/bradrydzewski/lgtm/model"
 	"github.com/franela/goblin"
+	"github.com/lgtmco/lgtm/model"
 )
 
 func Test_repostore(t *testing.T) {

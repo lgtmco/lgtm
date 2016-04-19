@@ -3,9 +3,9 @@ package session
 import (
 	"net/http"
 
-	"github.com/bradrydzewski/lgtm/model"
-	"github.com/bradrydzewski/lgtm/shared/token"
-	"github.com/bradrydzewski/lgtm/store"
+	"github.com/lgtmco/lgtm/model"
+	"github.com/lgtmco/lgtm/shared/token"
+	"github.com/lgtmco/lgtm/store"
 
 	"github.com/gin-gonic/gin"
 )

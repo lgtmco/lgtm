@@ -3,7 +3,7 @@ package middleware
 import (
 	"time"
 
-	"github.com/bradrydzewski/lgtm/cache"
+	"github.com/lgtmco/lgtm/cache"
 
 	"github.com/gin-gonic/gin"
 	"github.com/ianschenck/envflag"

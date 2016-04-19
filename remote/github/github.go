@@ -8,9 +8,9 @@ import (
 	"time"
 
 	log "github.com/Sirupsen/logrus"
-	"github.com/bradrydzewski/lgtm/model"
-	"github.com/bradrydzewski/lgtm/shared/httputil"
 	"github.com/google/go-github/github"
+	"github.com/lgtmco/lgtm/model"
+	"github.com/lgtmco/lgtm/shared/httputil"
 	"golang.org/x/oauth2"
 )
 

@@ -3,14 +3,14 @@ package router
 import (
 	"net/http"
 
-	"github.com/bradrydzewski/lgtm/api"
-	"github.com/bradrydzewski/lgtm/router/middleware/access"
-	"github.com/bradrydzewski/lgtm/router/middleware/header"
-	"github.com/bradrydzewski/lgtm/router/middleware/session"
-	"github.com/bradrydzewski/lgtm/web"
-	"github.com/bradrydzewski/lgtm/web/static"
-	"github.com/bradrydzewski/lgtm/web/template"
 	"github.com/gin-gonic/gin"
+	"github.com/lgtmco/lgtm/api"
+	"github.com/lgtmco/lgtm/router/middleware/access"
+	"github.com/lgtmco/lgtm/router/middleware/header"
+	"github.com/lgtmco/lgtm/router/middleware/session"
+	"github.com/lgtmco/lgtm/web"
+	"github.com/lgtmco/lgtm/web/static"
+	"github.com/lgtmco/lgtm/web/template"
 )
 
 func Load(middleware ...gin.HandlerFunc) http.Handler {

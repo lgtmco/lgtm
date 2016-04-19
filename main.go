@@ -4,8 +4,8 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/bradrydzewski/lgtm/router"
-	"github.com/bradrydzewski/lgtm/router/middleware"
+	"github.com/lgtmco/lgtm/router"
+	"github.com/lgtmco/lgtm/router/middleware"
 
 	"github.com/Sirupsen/logrus"
 	"github.com/gin-gonic/contrib/ginrus"

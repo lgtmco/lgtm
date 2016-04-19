@@ -3,7 +3,7 @@ package mock
 import "github.com/stretchr/testify/mock"
 
 import "net/http"
-import "github.com/bradrydzewski/lgtm/model"
+import "github.com/lgtmco/lgtm/model"
 
 type Remote struct {
 	mock.Mock

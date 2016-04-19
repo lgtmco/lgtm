@@ -3,13 +3,13 @@ package api
 import (
 	"fmt"
 
-	"github.com/bradrydzewski/lgtm/cache"
-	"github.com/bradrydzewski/lgtm/model"
-	"github.com/bradrydzewski/lgtm/remote"
-	"github.com/bradrydzewski/lgtm/router/middleware/session"
-	"github.com/bradrydzewski/lgtm/shared/httputil"
-	"github.com/bradrydzewski/lgtm/shared/token"
-	"github.com/bradrydzewski/lgtm/store"
+	"github.com/lgtmco/lgtm/cache"
+	"github.com/lgtmco/lgtm/model"
+	"github.com/lgtmco/lgtm/remote"
+	"github.com/lgtmco/lgtm/router/middleware/session"
+	"github.com/lgtmco/lgtm/shared/httputil"
+	"github.com/lgtmco/lgtm/shared/token"
+	"github.com/lgtmco/lgtm/store"
 
 	log "github.com/Sirupsen/logrus"
 	"github.com/gin-gonic/gin"
