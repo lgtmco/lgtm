@@ -34,18 +34,18 @@
 		},
 		{
 			"path": "github.com/gin-gonic/gin",
-			"revision": "52fcc5dbf6e94df33ad313858fb94b713e9d1b4a",
-			"revisionTime": "2015-09-25T12:14:45+02:00"
+			"revision": "5caaac4c5c712a9e7a7de29e6c24ef46c753017f",
+			"revisionTime": "2016-04-15T01:39:28+02:00"
 		},
 		{
 			"path": "github.com/gin-gonic/gin/binding",
-			"revision": "52fcc5dbf6e94df33ad313858fb94b713e9d1b4a",
-			"revisionTime": "2015-09-25T12:14:45+02:00"
+			"revision": "5caaac4c5c712a9e7a7de29e6c24ef46c753017f",
+			"revisionTime": "2016-04-15T01:39:28+02:00"
 		},
 		{
 			"path": "github.com/gin-gonic/gin/render",
-			"revision": "52fcc5dbf6e94df33ad313858fb94b713e9d1b4a",
-			"revisionTime": "2015-09-25T12:14:45+02:00"
+			"revision": "5caaac4c5c712a9e7a7de29e6c24ef46c753017f",
+			"revisionTime": "2016-04-15T01:39:28+02:00"
 		},
 		{
 			"path": "github.com/go-sql-driver/mysql",
