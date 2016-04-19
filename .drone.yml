@@ -1,15 +1,15 @@
-debug: true
-
 build:
-  image: golang:1.5
-  environment:
-    - GO15VENDOREXPERIMENT=1
-  commands:
-    - make deps
-    - make gen
-    - make test
-    - make test_mysql
-    - make build
+  test:
+    image: golang:1.6
+    commands:
+      - make deps
+      - make test
+  dist:
+    image: golang:1.6
+     - make test_mysql
+     - make build
+    when:
+      event: push
 
 compose:
   mysql:

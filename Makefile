@@ -10,7 +10,6 @@ deps:
 gen:
 	go generate github.com/lgtmco/lgtm/web/static
 	go generate github.com/lgtmco/lgtm/web/template
-	go generate github.com/lgtmco/lgtm/notifier
 	go generate github.com/lgtmco/lgtm/remote
 	go generate github.com/lgtmco/lgtm/store/migration
 	go generate github.com/lgtmco/lgtm/store
