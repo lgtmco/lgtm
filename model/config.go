@@ -7,9 +7,10 @@ import (
 )
 
 type Config struct {
-	Approvals       int    `json:"approvals"           toml:"approvals"`
-	Pattern         string `json:"pattern"             toml:"pattern"`
-	SelfApprovalOff bool   `json:"self_approval_off"   toml:"self_approval_off"`
+	Approvals       int    `json:"approvals"         toml:"approvals"`
+	Pattern         string `json:"pattern"           toml:"pattern"`
+	Team            string `json:"team"              toml:"team"`
+	SelfApprovalOff bool   `json:"self_approval_off" toml:"self_approval_off"`
 
 	re *regexp.Regexp
 }
@@ -31,6 +32,9 @@ func ParseConfigStr(data string) (*Config, error) {
 	}
 	if len(c.Pattern) == 0 {
 		c.Pattern = "(?i)LGTM"
+	}
+	if len(c.Team) == 0 {
+		c.Team = "MAINTAINERS"
 	}
 	c.re, err = regexp.Compile(c.Pattern)
 	return c, err
