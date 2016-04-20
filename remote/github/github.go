@@ -180,11 +180,6 @@ func (g *Github) GetRepos(u *model.User) ([]*model.Repo, error) {
 func (g *Github) SetHook(user *model.User, repo *model.Repo, link string) error {
 	client := setupClient(g.API, user.Token)
 
-	repo_, _, err := client.Repositories.Get(repo.Owner, repo.Name)
-	if err != nil {
-		return err
-	}
-
 	old, err := GetHook(client, repo.Owner, repo.Name, link)
 	if err == nil && old != nil {
 		client.Repositories.DeleteHook(repo.Owner, repo.Name, *old.ID)
@@ -193,6 +188,13 @@ func (g *Github) SetHook(user *model.User, repo *model.Repo, link string) error 
 	_, err = CreateHook(client, repo.Owner, repo.Name, link)
 	if err != nil {
 		log.Debugf("Error creating the webhook at %s. %s", link, err)
+		return err
+	}
+
+	/*
+	Does not work with enterprise github version installed as of 4/20/2016
+	repo_, _, err := client.Repositories.Get(repo.Owner, repo.Name)
+	if err != nil {
 		return err
 	}
 
@@ -209,6 +211,24 @@ func (g *Github) SetHook(user *model.User, repo *model.Repo, link string) error 
 		}
 		log.Warnf("Error configuring protected branch for %s/%s@%s. %s", repo.Owner, repo.Name, *repo_.DefaultBranch, err)
 	}
+	*/
+	return nil
+}
+
+func (g *Github) SetStatusHook(user *model.User, repo *model.Repo, link string) error {
+	client := setupClient(g.API, user.Token)
+
+	old, err := GetHook(client, repo.Owner, repo.Name, link)
+	if err == nil && old != nil {
+		client.Repositories.DeleteHook(repo.Owner, repo.Name, *old.ID)
+	}
+
+	_, err = CreateStatusHook(client, repo.Owner, repo.Name, link)
+	if err != nil {
+		log.Debugf("Error creating the webhook at %s. %s", link, err)
+		return err
+	}
+
 	return nil
 }
 
@@ -328,5 +348,36 @@ func (g *Github) GetHook(r *http.Request) (*model.Hook, error) {
 	hook.Comment.Body = data.Comment.Body
 	hook.Comment.Author = data.Comment.User.Login
 
+	return hook, nil
+}
+
+func (g *Github) GetStatusHook(r *http.Request) (*model.StatusHook, error) {
+
+	// only process comment hooks
+	if r.Header.Get("X-Github-Event") != "status" {
+		return nil, nil
+	}
+
+	data := statusHook{}
+	err := json.NewDecoder(r.Body).Decode(&data)
+	if err != nil {
+		return nil, err
+	}
+
+	log.Debug(data)
+
+	if data.State != "success" {
+		return nil, nil
+	}
+
+
+	hook := new(model.StatusHook)
+
+	hook.Repo = new(model.Repo)
+	hook.Repo.Owner = data.Repository.Owner.Login
+	hook.Repo.Name = data.Repository.Name
+	hook.Repo.Slug = data.Repository.FullName
+
+	log.Debug(hook)
 	return hook, nil
 }

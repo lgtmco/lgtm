@@ -11,3 +11,5 @@ bindata.go
 web/react/node_modules
 web/static/files/script.js
 #web/static/files/*.css
+
+.idea

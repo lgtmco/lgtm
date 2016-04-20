@@ -35,6 +35,9 @@ type Remote interface {
 	// SetHook adds a webhook to the remote repository.
 	SetHook(*model.User, *model.Repo, string) error
 
+	// SetStatusHook adds a webhook to the remote repository.
+	SetStatusHook(*model.User, *model.Repo, string) error
+
 	// DelHook deletes a webhook from the remote repository.
 	DelHook(*model.User, *model.Repo, string) error
 
@@ -49,6 +52,9 @@ type Remote interface {
 
 	// GetHook gets the hook from the http Request.
 	GetHook(r *http.Request) (*model.Hook, error)
+
+	// GetHook gets the status hook from the http Request.
+	GetStatusHook(r *http.Request) (*model.StatusHook, error)
 }
 
 // GetUser authenticates a user with the remote system.
@@ -102,6 +108,11 @@ func SetHook(c context.Context, u *model.User, r *model.Repo, hook string) error
 	return FromContext(c).SetHook(u, r, hook)
 }
 
+// SetHook adds a webhook to the remote repository.
+func SetStatusHook(c context.Context, u *model.User, r *model.Repo, hook string) error {
+	return FromContext(c).SetStatusHook(u, r, hook)
+}
+
 // DelHook deletes a webhook from the remote repository.
 func DelHook(c context.Context, u *model.User, r *model.Repo, hook string) error {
 	return FromContext(c).DelHook(u, r, hook)
@@ -115,4 +126,9 @@ func SetStatus(c context.Context, u *model.User, r *model.Repo, num int, ok bool
 // GetHook gets the hook from the http Request.
 func GetHook(c context.Context, r *http.Request) (*model.Hook, error) {
 	return FromContext(c).GetHook(r)
+}
+
+// GetStatusHook gets the status hook from the http Request.
+func GetStatusHook(c context.Context, r *http.Request) (*model.StatusHook, error) {
+	return FromContext(c).GetStatusHook(r)
 }

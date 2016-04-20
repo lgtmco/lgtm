@@ -38,15 +38,31 @@ type commentHook struct {
 		} `json:"user"`
 	} `json:"comment"`
 
-	Repository struct {
-		Name     string `json:"name"`
-		FullName string `json:"full_name"`
-		Desc     string `json:"description"`
-		Private  bool   `json:"private"`
-		Owner    struct {
-			Login  string `json:"login"`
-			Type   string `json:"type"`
-			Avatar string `json:"avatar_url"`
-		} `json:"owner"`
-	} `json:"repository"`
+	Repository Repository `json:"repository"`
+}
+
+type statusHook struct {
+	State string `json:"state"`
+
+	Branches []struct {
+		Name string `json:"name"`
+		Commit struct {
+			SHA string `json:"sha"`
+			URL string `json:"url"`
+		       } `json:"commit"`
+	} `json:"branches"`
+
+	Repository Repository `json:"repository"`
+}
+
+type 	Repository struct {
+	Name     string `json:"name"`
+	FullName string `json:"full_name"`
+	Desc     string `json:"description"`
+	Private  bool   `json:"private"`
+	Owner    struct {
+			 Login  string `json:"login"`
+			 Type   string `json:"type"`
+			 Avatar string `json:"avatar_url"`
+		 } `json:"owner"`
 }

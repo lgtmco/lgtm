@@ -106,6 +106,17 @@ func PostRepo(c *gin.Context) {
 		return
 	}
 
+	statusLink := fmt.Sprintf(
+		"%s/status_hook?access_token=%s",
+		httputil.GetURL(c.Request),
+		sig,
+	)
+	err = remote.SetStatusHook(c, user, repo, statusLink)
+	if err != nil {
+		c.String(500, "Error creating status hook. %s", err)
+		return
+	}
+
 	err = store.CreateRepo(c, repo)
 	if err != nil {
 		c.String(500, "Error activating the repository. %s", err)
