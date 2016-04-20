@@ -1,9 +1,6 @@
 package web
 
 import (
-	"regexp"
-
-	"github.com/lgtmco/lgtm/cache"
 	"github.com/lgtmco/lgtm/model"
 	"github.com/lgtmco/lgtm/remote"
 	"github.com/lgtmco/lgtm/store"
