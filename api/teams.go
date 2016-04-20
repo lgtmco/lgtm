@@ -5,7 +5,7 @@ import (
 	"github.com/lgtmco/lgtm/model"
 	"github.com/lgtmco/lgtm/router/middleware/session"
 
-	log "github.com/Sirupsen/logrus"
+	"github.com/Sirupsen/logrus"
 	"github.com/gin-gonic/gin"
 )
 
@@ -14,7 +14,7 @@ func GetTeams(c *gin.Context) {
 	user := session.User(c)
 	teams, err := cache.GetTeams(c, user)
 	if err != nil {
-		log.Errorf("Error getting team list. %s", err)
+		logrus.Errorf("Error getting teams for user %s. %s", user.Login, err)
 		c.String(500, "Error getting team list")
 		return
 	}

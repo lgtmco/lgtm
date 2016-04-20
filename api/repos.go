@@ -11,7 +11,7 @@ import (
 	"github.com/lgtmco/lgtm/shared/token"
 	"github.com/lgtmco/lgtm/store"
 
-	log "github.com/Sirupsen/logrus"
+	"github.com/Sirupsen/logrus"
 	"github.com/gin-gonic/gin"
 )
 
@@ -20,7 +20,7 @@ func GetRepos(c *gin.Context) {
 	user := session.User(c)
 	repos, err := cache.GetRepos(c, user)
 	if err != nil {
-		log.Errorf("Error getting remote repository list. %s", err)
+		logrus.Errorf("Error getting remote repository list. %s", err)
 		c.String(500, "Error getting remote repository list")
 		return
 	}
@@ -32,7 +32,7 @@ func GetRepos(c *gin.Context) {
 
 	repom, err := store.GetRepoIntersectMap(c, repos)
 	if err != nil {
-		log.Errorf("Error getting active repository list. %s", err)
+		logrus.Errorf("Error getting active repository list. %s", err)
 		c.String(500, "Error getting active repository list")
 		return
 	}
@@ -45,7 +45,7 @@ func GetRepos(c *gin.Context) {
 			repoc[i] = repo_
 		}
 	}
-	c.IndentedJSON(200, repoc)
+	c.JSON(200, repoc)
 }
 
 // GetRepo gets the repository by slug.
@@ -56,7 +56,7 @@ func GetRepo(c *gin.Context) {
 	)
 	repo, err := store.GetRepoOwnerName(c, owner, name)
 	if err != nil {
-		log.Errorf("Error getting repository %s. %s", name, err)
+		logrus.Errorf("Error getting repository %s. %s", name, err)
 		c.String(404, "Error getting repository %s", name)
 		return
 	}
@@ -122,7 +122,7 @@ func PostRepo(c *gin.Context) {
 		c.String(500, "Error activating the repository. %s", err)
 		return
 	}
-	c.IndentedJSON(200, repo)
+	c.JSON(200, repo)
 }
 
 // DeleteRepo deletes a repository configuration.
@@ -134,13 +134,13 @@ func DeleteRepo(c *gin.Context) {
 	)
 	repo, err := store.GetRepoOwnerName(c, owner, name)
 	if err != nil {
-		log.Errorf("Error getting repository %s. %s", name, err)
+		logrus.Errorf("Error getting repository %s. %s", name, err)
 		c.AbortWithStatus(404)
 		return
 	}
 	err = store.DeleteRepo(c, repo)
 	if err != nil {
-		log.Errorf("Error deleting repository %s. %s", name, err)
+		logrus.Errorf("Error deleting repository %s. %s", name, err)
 		c.AbortWithStatus(500)
 		return
 	}
@@ -150,7 +150,7 @@ func DeleteRepo(c *gin.Context) {
 	)
 	err = remote.DelHook(c, user, repo, link)
 	if err != nil {
-		log.Errorf("Error deleting repository hook for %s. %s", name, err)
+		logrus.Errorf("Error deleting repository hook for %s. %s", name, err)
 	}
 	c.String(200, "")
 }
