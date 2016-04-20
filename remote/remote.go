@@ -35,9 +35,6 @@ type Remote interface {
 	// SetHook adds a webhook to the remote repository.
 	SetHook(*model.User, *model.Repo, string) error
 
-	// SetStatusHook adds a webhook to the remote repository.
-	SetStatusHook(*model.User, *model.Repo, string) error
-
 	// DelHook deletes a webhook from the remote repository.
 	DelHook(*model.User, *model.Repo, string) error
 
@@ -106,11 +103,6 @@ func GetContents(c context.Context, u *model.User, r *model.Repo, path string) (
 // SetHook adds a webhook to the remote repository.
 func SetHook(c context.Context, u *model.User, r *model.Repo, hook string) error {
 	return FromContext(c).SetHook(u, r, hook)
-}
-
-// SetHook adds a webhook to the remote repository.
-func SetStatusHook(c context.Context, u *model.User, r *model.Repo, hook string) error {
-	return FromContext(c).SetStatusHook(u, r, hook)
 }
 
 // DelHook deletes a webhook from the remote repository.

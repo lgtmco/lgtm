@@ -215,23 +215,6 @@ func (g *Github) SetHook(user *model.User, repo *model.Repo, link string) error 
 	return nil
 }
 
-func (g *Github) SetStatusHook(user *model.User, repo *model.Repo, link string) error {
-	client := setupClient(g.API, user.Token)
-
-	old, err := GetHook(client, repo.Owner, repo.Name, link)
-	if err == nil && old != nil {
-		client.Repositories.DeleteHook(repo.Owner, repo.Name, *old.ID)
-	}
-
-	_, err = CreateStatusHook(client, repo.Owner, repo.Name, link)
-	if err != nil {
-		log.Debugf("Error creating the webhook at %s. %s", link, err)
-		return err
-	}
-
-	return nil
-}
-
 func (g *Github) DelHook(user *model.User, repo *model.Repo, link string) error {
 	client := setupClient(g.API, user.Token)
 

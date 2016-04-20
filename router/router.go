@@ -36,7 +36,6 @@ func Load(middleware ...gin.HandlerFunc) http.Handler {
 	e.GET("/api/repos/:owner/:repo/maintainers/:org", session.UserMust, access.RepoPull, api.GetMaintainerOrg)
 
 	e.POST("/hook", web.Hook)
-	e.POST("/status_hook", web.StatusHook)
 	e.GET("/login", web.Login)
 	e.POST("/login", web.LoginToken)
 	e.GET("/logout", web.Logout)

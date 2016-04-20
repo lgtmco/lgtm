@@ -106,17 +106,6 @@ func PostRepo(c *gin.Context) {
 		return
 	}
 
-	statusLink := fmt.Sprintf(
-		"%s/status_hook?access_token=%s",
-		httputil.GetURL(c.Request),
-		sig,
-	)
-	err = remote.SetStatusHook(c, user, repo, statusLink)
-	if err != nil {
-		c.String(500, "Error creating status hook. %s", err)
-		return
-	}
-
 	err = store.CreateRepo(c, repo)
 	if err != nil {
 		c.String(500, "Error activating the repository. %s", err)
@@ -151,14 +140,6 @@ func DeleteRepo(c *gin.Context) {
 	err = remote.DelHook(c, user, repo, link)
 	if err != nil {
 		logrus.Errorf("Error deleting repository hook for %s. %s", name, err)
-	}
-	statusLink := fmt.Sprintf(
-		"%s/status_hook",
-		httputil.GetURL(c.Request),
-	)
-	err = remote.DelHook(c, user, repo, statusLink)
-	if err != nil {
-		logrus.Errorf("Error deleting repository status hook for %s. %s", name, err)
 	}
 	c.String(200, "")
 }
