@@ -52,6 +52,12 @@ type Remote interface {
 
 	// GetHook gets the status hook from the http Request.
 	GetStatusHook(r *http.Request) (*model.StatusHook, error)
+
+	// GetBranchStatus returns overall status for the named branch from the remote system
+	GetBranchStatus(*model.User, *model.Repo, string) (*model.BranchStatus, error)
+
+	// MergeBranch merges the named branch from the remote system
+	MergeBranch(u *model.User, r *model.Repo, branch string) error
 }
 
 // GetUser authenticates a user with the remote system.
@@ -123,4 +129,13 @@ func GetHook(c context.Context, r *http.Request) (*model.Hook, error) {
 // GetStatusHook gets the status hook from the http Request.
 func GetStatusHook(c context.Context, r *http.Request) (*model.StatusHook, error) {
 	return FromContext(c).GetStatusHook(r)
+}
+
+// GetBranchStatus gets the overal status for a branch from the remote repository.
+func GetBranchStatus(c context.Context, u *model.User, r *model.Repo, branch string) (*model.BranchStatus, error) {
+	return FromContext(c).GetBranchStatus(u, r, branch)
+}
+
+func MergeBranch(c context.Context, u *model.User, r *model.Repo, branch string) error {
+	return FromContext(c).MergeBranch(u, r, branch)
 }

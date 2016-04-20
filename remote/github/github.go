@@ -361,6 +361,38 @@ func (g *Github) GetStatusHook(r *http.Request) (*model.StatusHook, error) {
 	hook.Repo.Name = data.Repository.Name
 	hook.Repo.Slug = data.Repository.FullName
 
-	log.Debug(hook)
+	hook.Branches = []string{}
+	for _, v := range data.Branches {
+		hook.Branches = append(hook.Branches, v.Name)
+	}
+
+	log.Debug(*hook)
 	return hook, nil
 }
+
+func (g *Github) GetBranchStatus(u *model.User, r *model.Repo, branch string) (*model.BranchStatus, error) {
+	client := setupClient(g.API, u.Token)
+	statuses, _, err := client.Repositories.GetCombinedStatus(r.Owner, r.Name, branch, nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return (*model.BranchStatus)(statuses.State), nil
+}
+
+func (g *Github) MergeBranch(u *model.User, r *model.Repo, branch string) error {
+	client := setupClient(g.API, u.Token)
+
+	repo_, _, err := client.Repositories.Get(r.Owner, r.Name)
+	if err != nil {
+		return err
+	}
+
+	_, _, err = client.Repositories.Merge(r.Owner, r.Name, &github.RepositoryMergeRequest{
+		Base: repo_.DefaultBranch,
+		Head: github.String(branch),
+		CommitMessage: github.String("Merged by LGTM"),
+	})
+	return err
+}
+

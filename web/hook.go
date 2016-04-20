@@ -60,10 +60,26 @@ func processStatusHook(c *gin.Context, hook *model.StatusHook) {
 		return
 	}
 
-	//todo check the statuses of all of the checks on the branches for this commit
-	//todo if all of the statuses are success, then merge and create a tag for the version
-	//todo to create the version, need to scan the comments on the pull request to see if anyone specified a version #
-	//todo if so, use the largest specified version #. if not, increment the last version version # for the release
+	//check the statuses of all of the checks on the branches for this commit
+	for _, v := range hook.Branches {
+		b, err := remote.GetBranchStatus(c, user, hook.Repo, v)
+		if err != nil {
+			log.Warnf("Unable to process branch %s/%s/%s: %s",hook.Repo.Owner, hook.Repo.Name, v, err)
+			continue
+		}
+		//if all of the statuses are success, then merge and create a tag for the version
+		if *b == "success" {
+			err = remote.MergeBranch(c, user, hook.Repo, v)
+			if err != nil {
+				log.Warnf("Unable to merge branch %s/%s/%s: %s",hook.Repo.Owner, hook.Repo.Name, v, err)
+			} else {
+				log.Debugf("Merged branch %s/%s/%s",hook.Repo.Owner, hook.Repo.Name, v)
+			}
+		}
+		//todo to create the version, need to scan the comments on the pull request to see if anyone specified a version #
+		//todo if so, use the largest specified version #. if not, increment the last version version # for the release
+
+	}
 	/*
 	comments, err := remote.GetComments(c, user, repo, hook.Issue.Number)
 	if err != nil {
