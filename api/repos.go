@@ -152,5 +152,13 @@ func DeleteRepo(c *gin.Context) {
 	if err != nil {
 		logrus.Errorf("Error deleting repository hook for %s. %s", name, err)
 	}
+	statusLink := fmt.Sprintf(
+		"%s/status_hook",
+		httputil.GetURL(c.Request),
+	)
+	err = remote.DelHook(c, user, repo, statusLink)
+	if err != nil {
+		logrus.Errorf("Error deleting repository status hook for %s. %s", name, err)
+	}
 	c.String(200, "")
 }
