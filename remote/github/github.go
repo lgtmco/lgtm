@@ -199,9 +199,16 @@ func (g *Github) SetHook(user *model.User, repo *model.Repo, link string) error 
 	in := new(Branch)
 	in.Protection.Enabled = true
 	in.Protection.Checks.Enforcement = "non_admins"
-	in.Protection.Checks.Contexts = []string{context}
 
+	/*
+		JCB 04/21/16 confirmed with Github support -- must specify all existing contexts when
+		 adding a new one, otherwise the other contexts will be removed.
+	 */
 	client_ := NewClientToken(g.API, user.Token)
+	branch, _ := client_.Branch(repo.Owner, repo.Name, *repo_.DefaultBranch)
+
+	in.Protection.Checks.Contexts = append(buildOtherContextSlice(branch), context)
+
 	err = client_.BranchProtect(repo.Owner, repo.Name, *repo_.DefaultBranch, in)
 	if err != nil {
 		if g.URL == "https://github.com" {
@@ -236,14 +243,21 @@ func (g *Github) DelHook(user *model.User, repo *model.Repo, link string) error 
 	if len(branch.Protection.Checks.Contexts) == 0 {
 		return nil
 	}
+
+	branch.Protection.Checks.Contexts = buildOtherContextSlice(branch)
+
+	return client_.BranchProtect(repo.Owner, repo.Name, *repo_.DefaultBranch, branch)
+}
+
+// buildOtherContextSlice returns all contexts besides the one for LGTM
+func buildOtherContextSlice(branch *Branch) []string {
 	checks := []string{}
 	for _, check := range branch.Protection.Checks.Contexts {
 		if check != context {
 			checks = append(checks, check)
 		}
 	}
-	branch.Protection.Checks.Contexts = checks
-	return client_.BranchProtect(repo.Owner, repo.Name, *repo_.DefaultBranch, branch)
+	return checks
 }
 
 func (g *Github) GetComments(u *model.User, r *model.Repo, num int) ([]*model.Comment, error) {
