@@ -31,13 +31,14 @@ func Hook(c *gin.Context) {
 		c.String(500, "Error parsing status hook. %s", err)
 		return
 	}
+	if statusHook !=  nil {
+		processStatusHook(c, statusHook)
+	}
 
 	if hook == nil && statusHook == nil {
 		c.String(200, "pong")
 		return
 	}
-
-	processStatusHook(c, statusHook)
 }
 
 func processStatusHook(c *gin.Context, hook *model.StatusHook) {
