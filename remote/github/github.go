@@ -13,6 +13,7 @@ import (
 	"github.com/lgtmco/lgtm/shared/httputil"
 	"golang.org/x/oauth2"
 	"github.com/hashicorp/go-version"
+	"errors"
 )
 
 // name of the status message posted to GitHub
@@ -365,21 +366,47 @@ func (g *Github) GetStatusHook(r *http.Request) (*model.StatusHook, error) {
 		return nil, nil
 	}
 
-
 	hook := new(model.StatusHook)
+
+	hook.SHA = data.SHA
 
 	hook.Repo = new(model.Repo)
 	hook.Repo.Owner = data.Repository.Owner.Login
 	hook.Repo.Name = data.Repository.Name
 	hook.Repo.Slug = data.Repository.FullName
 
-	hook.Branches = []string{}
-	for _, v := range data.Branches {
-		hook.Branches = append(hook.Branches, v.Name)
-	}
-
 	log.Debug(*hook)
+
 	return hook, nil
+}
+
+func (g *Github) GetPullRequestsForCommit(u *model.User, r *model.Repo, sha *string) ([]model.PullRequest, error) {
+	client := setupClient(g.API, u.Token)
+	issues, _, err := client.Search.Issues(fmt.Sprintf("%s&type=pr", *sha), nil)
+	if err != nil {
+		return nil, err
+	}
+	out := make([]model.PullRequest, len(issues.Issues))
+	for k, v := range issues.Issues {
+		pr, _, err := client.PullRequests.Get(r.Owner, r.Name, *v.Number)
+		if err != nil {
+			return nil, err
+		}
+		out[k] = model.PullRequest{
+			Issue: model.Issue{
+				Number: *v.Number,
+				Title: *v.Title,
+				Author: *v.User.Login,
+			},
+			Branch:  model.Branch {
+				Name: *pr.Head.Ref,
+				BranchStatus: *pr.State,
+				Mergeable: *pr.Mergeable,
+
+			},
+		}
+	}
+	return out, nil
 }
 
 func (g *Github) GetBranchStatus(u *model.User, r *model.Repo, branch string) (*model.BranchStatus, error) {
@@ -392,24 +419,18 @@ func (g *Github) GetBranchStatus(u *model.User, r *model.Repo, branch string) (*
 	return (*model.BranchStatus)(statuses.State), nil
 }
 
-func (g *Github) MergeBranch(u *model.User, r *model.Repo, branch string) (*string, error) {
+func (g *Github) MergePR(u *model.User, r *model.Repo, pullRequest model.PullRequest) (*string, error) {
 	client := setupClient(g.API, u.Token)
 
-	repo_, _, err := client.Repositories.Get(r.Owner, r.Name)
+	result, _, err := client.PullRequests.Merge(r.Owner, r.Name, pullRequest.Number, "Merged by LGTM")
 	if err != nil {
 		return nil, err
 	}
 
-	result, _, err := client.Repositories.Merge(r.Owner, r.Name, &github.RepositoryMergeRequest{
-		Base: repo_.DefaultBranch,
-		Head: github.String(branch),
-		CommitMessage: github.String("Merged by LGTM"),
-	})
-
-	if err != nil {
-		return nil, err
+	if !(*result.Merged) {
+		return nil, errors.New(*result.Message)
 	}
-	return result.SHA, err
+	return result.SHA, nil
 }
 
 func (g *Github) GetMaxExistingTag(u *model.User, r *model.Repo) (*version.Version, error) {

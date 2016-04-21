@@ -42,6 +42,7 @@ type commentHook struct {
 }
 
 type statusHook struct {
+	SHA string `json:"sha"`
 	State string `json:"state"`
 
 	Branches []struct {
