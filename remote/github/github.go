@@ -481,11 +481,11 @@ func (g *Github) Tag(u *model.User, r *model.Repo, version *version.Version, sha
 	tag, _, err := client.Git.CreateTag(r.Owner, r.Name, &github.Tag{
 		Tag:     github.String(version.String()),
 		SHA:     sha,
-		Message: github.String("Tagged by Shazbot"),
+		Message: github.String("Tagged by LGTM"),
 		Tagger: &github.CommitAuthor{
 			Date:  &t,
-			Name:  github.String("Shazbot"),
-			Email: github.String("shazbot@capitalone.com"),
+			Name:  github.String("LGTM"),
+			Email: github.String("LGTM@lgtm.co"),
 		},
 		Object: &github.GitObject{
 			SHA:  sha,
