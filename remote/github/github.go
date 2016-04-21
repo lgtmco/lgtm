@@ -382,7 +382,10 @@ func (g *Github) GetStatusHook(r *http.Request) (*model.StatusHook, error) {
 
 func (g *Github) GetPullRequestsForCommit(u *model.User, r *model.Repo, sha *string) ([]model.PullRequest, error) {
 	client := setupClient(g.API, u.Token)
-	issues, _, err := client.Search.Issues(fmt.Sprintf("%s&type=pr", *sha), nil)
+	fmt.Println("sha == ", sha, *sha)
+	issues, _, err := client.Search.Issues(fmt.Sprintf("%s&type=pr", *sha), &github.SearchOptions {
+		TextMatch: false,
+	})
 	if err != nil {
 		return nil, err
 	}
@@ -391,6 +394,11 @@ func (g *Github) GetPullRequestsForCommit(u *model.User, r *model.Repo, sha *str
 		pr, _, err := client.PullRequests.Get(r.Owner, r.Name, *v.Number)
 		if err != nil {
 			return nil, err
+		}
+
+		mergeable:= true
+		if pr.Mergeable != nil {
+			mergeable = *pr.Mergeable
 		}
 		out[k] = model.PullRequest{
 			Issue: model.Issue{
@@ -401,7 +409,7 @@ func (g *Github) GetPullRequestsForCommit(u *model.User, r *model.Repo, sha *str
 			Branch:  model.Branch {
 				Name: *pr.Head.Ref,
 				BranchStatus: *pr.State,
-				Mergeable: *pr.Mergeable,
+				Mergeable: mergeable,
 
 			},
 		}
