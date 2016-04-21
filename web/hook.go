@@ -10,6 +10,8 @@ import (
 
 	log "github.com/Sirupsen/logrus"
 	"github.com/gin-gonic/gin"
+	"github.com/hashicorp/go-version"
+	"fmt"
 )
 
 func Hook(c *gin.Context) {
@@ -60,6 +62,15 @@ func processStatusHook(c *gin.Context, hook *model.StatusHook) {
 		return
 	}
 
+	if !config.DoMerge {
+		c.IndentedJSON(200, gin.H{
+		})
+		return
+	}
+
+	merged := map[string]string{}
+	vers := map[string]string{}
+
 	//check the statuses of all of the checks on the branches for this commit
 	for _, v := range hook.Branches {
 		b, err := remote.GetBranchStatus(c, user, hook.Repo, v)
@@ -69,16 +80,37 @@ func processStatusHook(c *gin.Context, hook *model.StatusHook) {
 		}
 		//if all of the statuses are success, then merge and create a tag for the version
 		if *b == "success" {
-			err = remote.MergeBranch(c, user, hook.Repo, v)
+			sha, err := remote.MergeBranch(c, user, hook.Repo, v)
 			if err != nil {
 				log.Warnf("Unable to merge branch %s/%s/%s: %s",hook.Repo.Owner, hook.Repo.Name, v, err)
+				continue
 			} else {
 				log.Debugf("Merged branch %s/%s/%s",hook.Repo.Owner, hook.Repo.Name, v)
 			}
-		}
-		//todo to create the version, need to scan the comments on the pull request to see if anyone specified a version #
-		//todo if so, use the largest specified version #. if not, increment the last version version # for the release
 
+			merged[v] = sha
+
+			if !config.DoVersion {
+				continue
+			}
+
+			// to create the version, need to scan the comments on the pull request to see if anyone specified a version #
+			// if so, use the largest specified version #. if not, increment the last version version # for the release
+			maxVer, err := remote.GetMaxExistingTag(c, user, hook.Repo)
+			if err != nil {
+				log.Warnf("Unable to find the max version tag for branch %s/%s/%s: %s",hook.Repo.Owner, hook.Repo.Name, v, err)
+				continue
+			}
+			maxParts := maxVer.Segments()
+			//todo scan comments for version info
+			curVersion, _ := version.NewVersion(fmt.Sprintf("%d.%d.%d",maxParts[0],maxParts[1],maxParts[2]+1))
+			err = remote.Tag(c, user, repo, curVersion, sha)
+			if err != nil {
+				log.Warnf("Unable to tag branch %s/%s/%s: %s",hook.Repo.Owner, hook.Repo.Name, v, err)
+				continue
+			}
+			vers[v] = curVersion.String()
+		}
 	}
 	/*
 	comments, err := remote.GetComments(c, user, repo, hook.Issue.Number)
@@ -100,10 +132,8 @@ func processStatusHook(c *gin.Context, hook *model.StatusHook) {
 	log.Debugf("processed status for %s. received %v ", repo.Slug, hook)
 
 	c.IndentedJSON(200, gin.H{
-		//"approvers":   maintainer.People,
-		"settings":    config,
-		//"approved":    approved,
-		//"approved_by": approvers,
+		"merged":    merged,
+		"versions": vers,
 	})
 }
 

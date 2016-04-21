@@ -12,6 +12,7 @@ import (
 	"github.com/lgtmco/lgtm/model"
 	"github.com/lgtmco/lgtm/shared/httputil"
 	"golang.org/x/oauth2"
+	"github.com/hashicorp/go-version"
 )
 
 // name of the status message posted to GitHub
@@ -380,7 +381,7 @@ func (g *Github) GetBranchStatus(u *model.User, r *model.Repo, branch string) (*
 	return (*model.BranchStatus)(statuses.State), nil
 }
 
-func (g *Github) MergeBranch(u *model.User, r *model.Repo, branch string) error {
+func (g *Github) MergeBranch(u *model.User, r *model.Repo, branch string) (*string, error) {
 	client := setupClient(g.API, u.Token)
 
 	repo_, _, err := client.Repositories.Get(r.Owner, r.Name)
@@ -388,11 +389,73 @@ func (g *Github) MergeBranch(u *model.User, r *model.Repo, branch string) error 
 		return err
 	}
 
-	_, _, err = client.Repositories.Merge(r.Owner, r.Name, &github.RepositoryMergeRequest{
+	result, _, err := client.Repositories.Merge(r.Owner, r.Name, &github.RepositoryMergeRequest{
 		Base: repo_.DefaultBranch,
 		Head: github.String(branch),
 		CommitMessage: github.String("Merged by LGTM"),
 	})
-	return err
+
+	if err != nil {
+		return nil, err
+	}
+	return result.SHA, err
 }
 
+func (g *Github) GetMaxExistingTag(u *model.User, r *model.Repo) (*version.Version, error) {
+	client := setupClient(g.API, u.Token)
+
+	//find the previous largest semver value
+	var maxVer *version.Version
+
+	tags, _, err := client.Repositories.ListTags(r.Owner, r.Name, nil)
+	if err != nil {
+		return nil, err
+	}
+	for _, v := range tags {
+		curVer, err := version.NewVersion(*v.Name)
+		if err != nil {
+			continue
+		}
+		if maxVer == nil || curVer.GreaterThan(maxVer) {
+			maxVer = curVer
+		}
+	}
+
+	if maxVer == nil {
+		maxVer, _ = version.NewVersion("v0.0.0")
+	}
+	log.Debugf("maxVer found is %s", maxVer.String())
+	return maxVer, nil
+}
+
+func (g *Github) Tag(u *model.User, r *model.Repo, version *version.Version, sha *string) error {
+	client := setupClient(g.API, u.Token)
+
+	t := time.Now()
+	tag, _, err := client.Git.CreateTag(r.Owner, r.Name, &github.Tag{
+		Tag:     github.String(version.String()),
+		SHA:     sha,
+		Message: github.String("Tagged by Shazbot"),
+		Tagger: &github.CommitAuthor{
+			Date:  &t,
+			Name:  github.String("Shazbot"),
+			Email: github.String("shazbot@capitalone.com"),
+		},
+		Object: &github.GitObject{
+			SHA:  sha,
+			Type: github.String("commit"),
+		},
+	})
+
+	if err != nil {
+		return err
+	}
+	_, _, err = client.Git.CreateRef(r.Owner, r.Name, &github.Reference{
+		Ref: github.String("refs/tags/" + version.String()),
+		Object: &github.GitObject{
+			SHA: tag.SHA,
+		},
+	})
+
+	return err
+}

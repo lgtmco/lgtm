@@ -7,6 +7,7 @@ import (
 
 	"github.com/lgtmco/lgtm/model"
 	"golang.org/x/net/context"
+	"github.com/hashicorp/go-version"
 )
 
 type Remote interface {
@@ -57,7 +58,13 @@ type Remote interface {
 	GetBranchStatus(*model.User, *model.Repo, string) (*model.BranchStatus, error)
 
 	// MergeBranch merges the named branch from the remote system
-	MergeBranch(u *model.User, r *model.Repo, branch string) error
+	MergeBranch(u *model.User, r *model.Repo, branch string) (*string, error)
+
+	// GetMaxExistingTag finds the highest version across all tags
+	GetMaxExistingTag(u *model.User, r *model.Repo) (*version.Version, error)
+
+	// Tag applies a tag with the specified version to the specified sha
+	Tag(u *model.User, r *model.Repo, version *version.Version, sha *string) error
 }
 
 // GetUser authenticates a user with the remote system.
@@ -136,6 +143,14 @@ func GetBranchStatus(c context.Context, u *model.User, r *model.Repo, branch str
 	return FromContext(c).GetBranchStatus(u, r, branch)
 }
 
-func MergeBranch(c context.Context, u *model.User, r *model.Repo, branch string) error {
+func MergeBranch(c context.Context, u *model.User, r *model.Repo, branch string) (*string, error) {
 	return FromContext(c).MergeBranch(u, r, branch)
+}
+
+func GetMaxExistingTag(c context.Context, u *model.User, r *model.Repo) (*version.Version, error) {
+	return FromContext(c).GetMaxExistingTag(u, r)
+}
+
+func Tag(c context.Context, u *model.User, r *model.Repo, version *version.Version, sha *string) error {
+	return FromContext(c).Tag(u, r, version, sha)
 }
