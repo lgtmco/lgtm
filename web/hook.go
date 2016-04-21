@@ -88,7 +88,7 @@ func processStatusHook(c *gin.Context, hook *model.StatusHook) {
 				log.Debugf("Merged branch %s/%s/%s",hook.Repo.Owner, hook.Repo.Name, v)
 			}
 
-			merged[v] = sha
+			merged[v] = *sha
 
 			if !config.DoVersion {
 				continue

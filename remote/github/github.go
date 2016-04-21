@@ -192,8 +192,6 @@ func (g *Github) SetHook(user *model.User, repo *model.Repo, link string) error 
 		return err
 	}
 
-	/*
-	Does not work with enterprise github version installed as of 4/20/2016
 	repo_, _, err := client.Repositories.Get(repo.Owner, repo.Name)
 	if err != nil {
 		return err
@@ -219,7 +217,6 @@ func (g *Github) SetHook(user *model.User, repo *model.Repo, link string) error 
 		}
 		log.Warnf("Error configuring protected branch for %s/%s@%s. %s", repo.Owner, repo.Name, *repo_.DefaultBranch, err)
 	}
-	*/
 	return nil
 }
 
@@ -400,7 +397,7 @@ func (g *Github) MergeBranch(u *model.User, r *model.Repo, branch string) (*stri
 
 	repo_, _, err := client.Repositories.Get(r.Owner, r.Name)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	result, _, err := client.Repositories.Merge(r.Owner, r.Name, &github.RepositoryMergeRequest{
