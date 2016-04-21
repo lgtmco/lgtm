@@ -400,6 +400,12 @@ func (g *Github) GetPullRequestsForCommit(u *model.User, r *model.Repo, sha *str
 		if pr.Mergeable != nil {
 			mergeable = *pr.Mergeable
 		}
+
+		status, _, err := client.Repositories.GetCombinedStatus(r.Owner, r.Name, *sha, nil)
+		if err != nil {
+			return nil, err
+		}
+
 		out[k] = model.PullRequest{
 			Issue: model.Issue{
 				Number: *v.Number,
@@ -408,7 +414,7 @@ func (g *Github) GetPullRequestsForCommit(u *model.User, r *model.Repo, sha *str
 			},
 			Branch:  model.Branch {
 				Name: *pr.Head.Ref,
-				BranchStatus: *pr.State,
+				BranchStatus: *status.State,
 				Mergeable: mergeable,
 
 			},

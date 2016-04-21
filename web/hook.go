@@ -32,7 +32,7 @@ func Hook(c *gin.Context) {
 		return
 	}
 
-	if statusHook == nil {
+	if hook == nil && statusHook == nil {
 		c.String(200, "pong")
 		return
 	}
@@ -69,6 +69,8 @@ func processStatusHook(c *gin.Context, hook *model.StatusHook) {
 	vers := map[string]string{}
 
 	pullRequests, err := remote.GetPullRequestsForCommit(c, user, hook.Repo, &hook.SHA)
+	log.Debugf("sha for commit is %s, pull requests are: %s", hook.SHA, pullRequests)
+
 	if err != nil {
 		log.Errorf("Error while getting pull requests for commit %s %s", hook.SHA, err)
 		c.String(500, "Error while getting pull requests for commit %s %s", hook.SHA, err)
