@@ -13,6 +13,7 @@ type Config struct {
 	SelfApprovalOff bool   `json:"self_approval_off" toml:"self_approval_off"`
 	DoMerge         bool `json:"do_merge" toml:"do_merge"`
 	DoVersion       bool `json:"do_version" toml:"do_version"`
+	ApprovalAlg     string `json:"approval_algorithm" toml:"approval_algorithm"`
 
 	re              *regexp.Regexp
 }
@@ -37,6 +38,9 @@ func ParseConfigStr(data string) (*Config, error) {
 	}
 	if len(c.Team) == 0 {
 		c.Team = "MAINTAINERS"
+	}
+	if len(c.ApprovalAlg) == 0 {
+		c.ApprovalAlg = "simple"
 	}
 	c.re, err = regexp.Compile(c.Pattern)
 	return c, err
