@@ -8,6 +8,7 @@ import (
 	log "github.com/Sirupsen/logrus"
 	"github.com/hashicorp/go-version"
 	"regexp"
+	"github.com/lgtmco/lgtm/approval"
 )
 
 type StatusResponse struct {
@@ -76,7 +77,14 @@ func processStatusHook(c *gin.Context, hook *model.StatusHook) {
 				continue
 			}
 
-			foundVersion := getMaxVersionComment(config, maintainer, v.Issue,comments)
+			alg, err := approval.Lookup(config.ApprovalAlg)
+			if err != nil {
+				log.Errorf("Error getting approval algorithm %s. %s", config.ApprovalAlg, err)
+				c.String(500, "Error getting approval algorithm %s. %s", config.ApprovalAlg, err)
+				return
+			}
+
+			foundVersion := getMaxVersionComment(config, maintainer, v.Issue, comments, alg)
 
 			if foundVersion != nil && foundVersion.GreaterThan(maxVer) {
 				maxVer = foundVersion
@@ -104,50 +112,28 @@ func processStatusHook(c *gin.Context, hook *model.StatusHook) {
 
 // getMaxVersionComment is a helper function that analyzes the list of comments
 // and returns the maximum version found in a comment.
-func getMaxVersionComment(config *model.Config, maintainer *model.Maintainer, issue model.Issue, comments []*model.Comment) *version.Version {
-	approverm := map[string]bool{}
-	approvers := []*model.Person{}
-
-	matcher, err := regexp.Compile(config.Pattern)
+func getMaxVersionComment(config *model.Config, maintainer *model.Maintainer,
+		          issue model.Issue, comments []*model.Comment, matcher approval.Func) *version.Version {
+	var maxVersion *version.Version
+	ma, err := regexp.Compile(config.Pattern)
 	if err != nil {
-		// this should never happen
+		//this should never happen
 		return nil
 	}
-
-	var maxVersion *version.Version
-
-	for _, comment := range comments {
-		// cannot lgtm your own pull request
-		if config.SelfApprovalOff && comment.Author == issue.Author {
-			continue
-		}
-		// the user must be a valid maintainer of the project
-		person, ok := maintainer.People[comment.Author]
-		if !ok {
-			continue
-		}
-		// the same author can't approve something twice
-		if _, ok := approverm[comment.Author]; ok {
-			continue
-		}
+	matcher(config, maintainer, &issue, comments, func(maintainer *model.Maintainer, comment *model.Comment) {
 		// verify the comment matches the approval pattern
-		m := matcher.FindStringSubmatch(comment.Body)
-		if len(m) > 0 {
-			approverm[comment.Author] = true
-			approvers = append(approvers, person)
-
-			if len(m) > 1 {
-				//has a version
-				curVersion, err := version.NewVersion(m[1])
-				if err != nil {
-					continue
-				}
-				if maxVersion == nil || curVersion.GreaterThan(maxVersion) {
-					maxVersion = curVersion
-				}
+		m := ma.FindStringSubmatch(comment.Body)
+		if len(m) > 1 {
+			//has a version
+			curVersion, err := version.NewVersion(m[1])
+			if err != nil {
+				return
+			}
+			if maxVersion == nil || curVersion.GreaterThan(maxVersion) {
+				maxVersion = curVersion
 			}
 		}
-	}
+	})
 
 	return maxVersion
 }
