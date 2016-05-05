@@ -1,44 +1,45 @@
 package web
 
 import (
-	"testing"
-	"github.com/lgtmco/lgtm/model"
-	"time"
-	"strconv"
-	"math"
+	"errors"
 	"fmt"
-	"github.com/lgtmco/lgtm/remote"
 	"github.com/gin-gonic/gin"
 	"github.com/hashicorp/go-version"
-	"errors"
+	"github.com/lgtmco/lgtm/model"
+	"github.com/lgtmco/lgtm/remote"
+	"math"
 	"net/http"
+	"strconv"
+	"testing"
+	"time"
+	"github.com/lgtmco/lgtm/approval"
 )
 
 func TestHandleTimestampMillis(t *testing.T) {
-	c := &model.Config {
+	c := &model.Config{
 		VersionFormat: "millis",
 	}
 	stamp, err := handleTimestamp(c)
 	if err != nil {
-		t.Errorf("didn't expect error: %v",err)
+		t.Errorf("didn't expect error: %v", err)
 	}
 	m := time.Now().UTC().Unix()
 	m1, err := strconv.ParseInt(*stamp, 10, 64)
 	if err != nil {
 		t.Error(err)
 	}
-	if math.Abs(float64(m-m1)) > 100 {
+	if math.Abs(float64(m - m1)) > 100 {
 		t.Errorf("shouldn't be that different: %d, %d", m, m1)
 	}
 }
 
 func TestHandleTimestampBlank(t *testing.T) {
-	c := &model.Config {
+	c := &model.Config{
 		VersionFormat: "",
 	}
 	stamp, err := handleTimestamp(c)
 	if err != nil {
-		t.Errorf("didn't expect error: %v",err)
+		t.Errorf("didn't expect error: %v", err)
 	}
 	//should be able to parse with rfc3339
 	t2, err := time.Parse(time.RFC3339, *stamp)
@@ -53,12 +54,12 @@ func TestHandleTimestampBlank(t *testing.T) {
 }
 
 func TestHandleTimestamp3339(t *testing.T) {
-	c := &model.Config {
+	c := &model.Config{
 		VersionFormat: "rfc3339",
 	}
 	stamp, err := handleTimestamp(c)
 	if err != nil {
-		t.Errorf("didn't expect error: %v",err)
+		t.Errorf("didn't expect error: %v", err)
 	}
 	//should be able to parse with rfc3339
 	t2, err := time.Parse(time.RFC3339, *stamp)
@@ -74,12 +75,12 @@ func TestHandleTimestamp3339(t *testing.T) {
 
 func TestHandleTimestampCustom(t *testing.T) {
 	//01/02 03:04:05PM '06 -0700
-	c := &model.Config {
+	c := &model.Config{
 		VersionFormat: "Jan 2 2006, 3:04:05 PM",
 	}
 	stamp, err := handleTimestamp(c)
 	if err != nil {
-		t.Errorf("didn't expect error: %v",err)
+		t.Errorf("didn't expect error: %v", err)
 	}
 	//should be able to parse with custom
 	t2, err := time.Parse(c.VersionFormat, *stamp)
@@ -98,7 +99,7 @@ type myR struct {
 }
 
 func (m *myR) ListTags(u *model.User, r *model.Repo) ([]model.Tag, error) {
-	return []model.Tag {
+	return []model.Tag{
 		"a",
 		"0.1.0",
 		"0.0.1",
@@ -109,27 +110,27 @@ func (m *myR) GetComments(u *model.User, r *model.Repo, num int) ([]*model.Comme
 	return []*model.Comment{
 		{
 			Author: "test_guy",
-			Body: "LGTM 0.1.0",
+			Body:   "LGTM 0.1.0",
 		},
 		{
 			Author: "not_test_guy",
-			Body: "this is not an LGTM comment",
+			Body:   "this is not an LGTM comment",
 		},
 		{
 			Author: "not_test_guy",
-			Body: "LGTM",
+			Body:   "LGTM",
 		},
 		{
 			Author: "test_guy",
-			Body: "LGTM 0.1.0",
+			Body:   "LGTM 0.1.0",
 		},
 		{
 			Author: "test_guy2",
-			Body: "LGTM",
+			Body:   "LGTM",
 		},
 		{
 			Author: "test_guy3",
-			Body: "LGTM 0.0.1",
+			Body:   "LGTM 0.0.1",
 		},
 	}, nil
 }
@@ -138,9 +139,9 @@ func TestGetMaxVersionComment(t *testing.T) {
 	c := &gin.Context{}
 
 	remote.ToContext(c, &myR{})
-	config := &model.Config {
+	config := &model.Config{
 		DoVersion: true,
-		Pattern: `(?i)LGTM\s*(\S*)`,
+		Pattern:   `(?i)LGTM\s*(\S*)`,
 	}
 	m := &model.Maintainer{
 		People: map[string]*model.Person{
@@ -161,30 +162,31 @@ func TestGetMaxVersionComment(t *testing.T) {
 	comments := []*model.Comment{
 		{
 			Author: "test_guy",
-			Body: "LGTM 0.1.0",
+			Body:   "LGTM 0.1.0",
 		},
 		{
 			Author: "not_test_guy",
-			Body: "this is not an LGTM comment",
+			Body:   "this is not an LGTM comment",
 		},
 		{
 			Author: "not_test_guy",
-			Body: "LGTM",
+			Body:   "LGTM",
 		},
 		{
 			Author: "test_guy",
-			Body: "LGTM 0.1.0",
+			Body:   "LGTM 0.1.0",
 		},
 		{
 			Author: "test_guy2",
-			Body: "LGTM",
+			Body:   "LGTM",
 		},
 		{
 			Author: "test_guy3",
-			Body: "LGTM 0.0.1",
+			Body:   "LGTM 0.0.1",
 		},
 	}
-	ver := getMaxVersionComment(config, m, i, comments)
+	alg, _ := approval.Lookup("simple")
+	ver := getMaxVersionComment(config, m, i, comments, alg)
 	if ver == nil {
 		t.Fatalf("Got nil for version")
 	}
@@ -198,9 +200,9 @@ func TestGetMaxVersionCommentBadPattern(t *testing.T) {
 	c := &gin.Context{}
 
 	remote.ToContext(c, &myR{})
-	config := &model.Config {
+	config := &model.Config{
 		DoVersion: true,
-		Pattern: `?i)LGTM\s*(\S*)`,
+		Pattern:   `?i)LGTM\s*(\S*)`,
 	}
 	m := &model.Maintainer{
 		People: map[string]*model.Person{
@@ -221,40 +223,37 @@ func TestGetMaxVersionCommentBadPattern(t *testing.T) {
 	comments := []*model.Comment{
 		{
 			Author: "test_guy",
-			Body: "LGTM 0.1.0",
+			Body:   "LGTM 0.1.0",
 		},
 		{
 			Author: "not_test_guy",
-			Body: "this is not an LGTM comment",
+			Body:   "this is not an LGTM comment",
 		},
 		{
 			Author: "not_test_guy",
-			Body: "LGTM",
+			Body:   "LGTM",
 		},
 		{
 			Author: "test_guy",
-			Body: "not an approval comment",
+			Body:   "not an approval comment",
 		},
 		{
 			Author: "test_guy",
-			Body: "LGTM 0.1.0",
+			Body:   "LGTM 0.1.0",
 		},
 		{
 			Author: "test_guy2",
-			Body: "LGTM",
+			Body:   "LGTM",
 		},
 		{
 			Author: "test_guy3",
-			Body: "LGTM 0.0.1",
+			Body:   "LGTM 0.0.1",
 		},
 	}
-	ver := getMaxVersionComment(config, m, i, comments)
-	if ver == nil {
-		t.Fatalf("Got nil for version")
-	}
-	expected, _ := version.NewVersion("0.0.0")
-	if !expected.Equal(ver) {
-		t.Errorf("Expected %s, got %s", expected.String(), ver.String())
+	alg, _ := approval.Lookup("simple")
+	ver := getMaxVersionComment(config, m, i, comments, alg)
+	if ver != nil {
+		t.Fatalf("Should get nil for version")
 	}
 }
 
@@ -262,9 +261,9 @@ func TestGetMaxVersionCommentNoSelfApproval(t *testing.T) {
 	c := &gin.Context{}
 
 	remote.ToContext(c, &myR{})
-	config := &model.Config {
-		DoVersion: true,
-		Pattern: `(?i)LGTM\s*(\S*)`,
+	config := &model.Config{
+		DoVersion:       true,
+		Pattern:         `(?i)LGTM\s*(\S*)`,
 		SelfApprovalOff: true,
 	}
 	m := &model.Maintainer{
@@ -286,30 +285,31 @@ func TestGetMaxVersionCommentNoSelfApproval(t *testing.T) {
 	comments := []*model.Comment{
 		{
 			Author: "test_guy",
-			Body: "LGTM 0.1.0",
+			Body:   "LGTM 0.1.0",
 		},
 		{
 			Author: "not_test_guy",
-			Body: "this is not an LGTM comment",
+			Body:   "this is not an LGTM comment",
 		},
 		{
 			Author: "not_test_guy",
-			Body: "LGTM",
+			Body:   "LGTM",
 		},
 		{
 			Author: "test_guy",
-			Body: "LGTM 0.1.0",
+			Body:   "LGTM 0.1.0",
 		},
 		{
 			Author: "test_guy2",
-			Body: "LGTM",
+			Body:   "LGTM",
 		},
 		{
 			Author: "test_guy3",
-			Body: "LGTM 0.0.1",
+			Body:   "LGTM 0.0.1",
 		},
 	}
-	ver := getMaxVersionComment(config, m, i, comments)
+	alg, _ := approval.Lookup("simple")
+	ver := getMaxVersionComment(config, m, i, comments, alg)
 	if ver == nil {
 		t.Fatalf("Got nil for version")
 	}
@@ -319,9 +319,8 @@ func TestGetMaxVersionCommentNoSelfApproval(t *testing.T) {
 	}
 }
 
-
 func TestGetMaxExistingTagFound(t *testing.T) {
-	ver := getMaxExistingTag([]model.Tag {
+	ver := getMaxExistingTag([]model.Tag{
 		"a",
 		"0.1.0",
 		"0.0.1",
@@ -334,7 +333,7 @@ func TestGetMaxExistingTagFound(t *testing.T) {
 }
 
 func TestGetMaxExistingTagNotFound(t *testing.T) {
-	ver := getMaxExistingTag([]model.Tag {
+	ver := getMaxExistingTag([]model.Tag{
 		"a",
 		"b",
 		"c",
@@ -350,9 +349,10 @@ func TestHandleSemver(t *testing.T) {
 	c := &gin.Context{}
 
 	remote.ToContext(c, &myR{})
-	config := &model.Config {
+	config := &model.Config{
 		DoVersion: true,
-		Pattern: `(?i)LGTM\s*(\S*)`,
+		Pattern:   `(?i)LGTM\s*(\S*)`,
+		ApprovalAlg: "simple",
 	}
 	m := &model.Maintainer{
 		People: map[string]*model.Person{
@@ -367,12 +367,12 @@ func TestHandleSemver(t *testing.T) {
 			},
 		},
 	}
-	user := &model.User {}
+	user := &model.User{}
 	repo := &model.Repo{}
 	hook := &model.StatusHook{
 		Repo: &model.Repo{
 			Owner: "test_guy",
-			Name: "test_repo",
+			Name:  "test_repo",
 		},
 	}
 	pr := model.PullRequest{
@@ -395,7 +395,7 @@ type myR2 struct {
 }
 
 func (m *myR2) ListTags(u *model.User, r *model.Repo) ([]model.Tag, error) {
-	return []model.Tag {
+	return []model.Tag{
 		"a",
 		"0.0.1",
 		"0.0.2",
@@ -406,27 +406,27 @@ func (m *myR2) GetComments(u *model.User, r *model.Repo, num int) ([]*model.Comm
 	return []*model.Comment{
 		{
 			Author: "test_guy",
-			Body: "LGTM 0.1.0",
+			Body:   "LGTM 0.1.0",
 		},
 		{
 			Author: "not_test_guy",
-			Body: "this is not an LGTM comment",
+			Body:   "this is not an LGTM comment",
 		},
 		{
 			Author: "not_test_guy",
-			Body: "LGTM",
+			Body:   "LGTM",
 		},
 		{
 			Author: "test_guy",
-			Body: "LGTM 0.1.0",
+			Body:   "LGTM 0.1.0",
 		},
 		{
 			Author: "test_guy2",
-			Body: "LGTM",
+			Body:   "LGTM",
 		},
 		{
 			Author: "test_guy3",
-			Body: "LGTM 0.0.1",
+			Body:   "LGTM 0.0.1",
 		},
 	}, nil
 }
@@ -435,9 +435,10 @@ func TestHandleSemver2(t *testing.T) {
 	c := &gin.Context{}
 
 	remote.ToContext(c, &myR2{})
-	config := &model.Config {
+	config := &model.Config{
 		DoVersion: true,
-		Pattern: `(?i)LGTM\s*(\S*)`,
+		Pattern:   `(?i)LGTM\s*(\S*)`,
+		ApprovalAlg: "simple",
 	}
 	m := &model.Maintainer{
 		People: map[string]*model.Person{
@@ -452,12 +453,12 @@ func TestHandleSemver2(t *testing.T) {
 			},
 		},
 	}
-	user := &model.User {}
+	user := &model.User{}
 	repo := &model.Repo{}
 	hook := &model.StatusHook{
 		Repo: &model.Repo{
 			Owner: "test_guy",
-			Name: "test_repo",
+			Name:  "test_repo",
 		},
 	}
 	pr := model.PullRequest{
@@ -487,27 +488,27 @@ func (m *myR3) GetComments(u *model.User, r *model.Repo, num int) ([]*model.Comm
 	return []*model.Comment{
 		{
 			Author: "test_guy",
-			Body: "LGTM 0.1.0",
+			Body:   "LGTM 0.1.0",
 		},
 		{
 			Author: "not_test_guy",
-			Body: "this is not an LGTM comment",
+			Body:   "this is not an LGTM comment",
 		},
 		{
 			Author: "not_test_guy",
-			Body: "LGTM",
+			Body:   "LGTM",
 		},
 		{
 			Author: "test_guy",
-			Body: "LGTM 0.1.0",
+			Body:   "LGTM 0.1.0",
 		},
 		{
 			Author: "test_guy2",
-			Body: "LGTM",
+			Body:   "LGTM",
 		},
 		{
 			Author: "test_guy3",
-			Body: "LGTM 0.0.1",
+			Body:   "LGTM 0.0.1",
 		},
 	}, nil
 }
@@ -516,9 +517,10 @@ func TestHandleSemver3(t *testing.T) {
 	c := &gin.Context{}
 
 	remote.ToContext(c, &myR3{})
-	config := &model.Config {
+	config := &model.Config{
 		DoVersion: true,
-		Pattern: `(?i)LGTM\s*(\S*)`,
+		Pattern:   `(?i)LGTM\s*(\S*)`,
+		ApprovalAlg: "simple",
 	}
 	m := &model.Maintainer{
 		People: map[string]*model.Person{
@@ -533,12 +535,12 @@ func TestHandleSemver3(t *testing.T) {
 			},
 		},
 	}
-	user := &model.User {}
+	user := &model.User{}
 	repo := &model.Repo{}
 	hook := &model.StatusHook{
 		Repo: &model.Repo{
 			Owner: "test_guy",
-			Name: "test_repo",
+			Name:  "test_repo",
 		},
 	}
 	pr := model.PullRequest{
@@ -561,7 +563,7 @@ type myR4 struct {
 }
 
 func (m *myR4) ListTags(u *model.User, r *model.Repo) ([]model.Tag, error) {
-	return []model.Tag {
+	return []model.Tag{
 		"a",
 		"0.0.1",
 		"0.0.2",
@@ -571,7 +573,6 @@ func (m *myR4) ListTags(u *model.User, r *model.Repo) ([]model.Tag, error) {
 func (m *myR4) GetComments(u *model.User, r *model.Repo, num int) ([]*model.Comment, error) {
 	return nil, errors.New("This is an error")
 }
-
 
 type myRR struct {
 	gin.ResponseWriter
@@ -591,9 +592,10 @@ func TestHandleSemver4(t *testing.T) {
 	}
 
 	remote.ToContext(c, &myR4{})
-	config := &model.Config {
+	config := &model.Config{
 		DoVersion: true,
-		Pattern: `(?i)LGTM\s*(\S*)`,
+		Pattern:   `(?i)LGTM\s*(\S*)`,
+		ApprovalAlg: "simple",
 	}
 	m := &model.Maintainer{
 		People: map[string]*model.Person{
@@ -608,12 +610,12 @@ func TestHandleSemver4(t *testing.T) {
 			},
 		},
 	}
-	user := &model.User {}
+	user := &model.User{}
 	repo := &model.Repo{}
 	hook := &model.StatusHook{
 		Repo: &model.Repo{
 			Owner: "test_guy",
-			Name: "test_repo",
+			Name:  "test_repo",
 		},
 	}
 	pr := model.PullRequest{

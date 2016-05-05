@@ -2,11 +2,12 @@ package web
 
 import (
 	"fmt"
+	log "github.com/Sirupsen/logrus"
 	"github.com/gin-gonic/gin"
+	"github.com/hashicorp/go-version"
+	"github.com/lgtmco/lgtm/approval"
 	"github.com/lgtmco/lgtm/model"
 	"github.com/lgtmco/lgtm/remote"
-	log "github.com/Sirupsen/logrus"
-	"github.com/hashicorp/go-version"
 	"regexp"
 	"time"
 )
@@ -28,8 +29,7 @@ func processStatusHook(c *gin.Context, hook *model.StatusHook) {
 	}
 
 	if !config.DoMerge {
-		c.IndentedJSON(200, gin.H{
-		})
+		c.IndentedJSON(200, gin.H{})
 		return
 	}
 
@@ -75,9 +75,6 @@ func processStatusHook(c *gin.Context, hook *model.StatusHook) {
 				verStr, err = handleSemver(c, user, hook, v, config, maintainer, repo)
 
 			}
-			if config.VersionAlg == "semver" {
-				verStr, err = handleSemver(c, user, hook, v, config, maintainer, repo)
-			}
 			if err != nil {
 				continue
 			}
@@ -93,18 +90,18 @@ func processStatusHook(c *gin.Context, hook *model.StatusHook) {
 	log.Debugf("processed status for %s. received %v ", repo.Slug, hook)
 
 	c.IndentedJSON(200, gin.H{
-		"merged":    merged,
+		"merged": merged,
 	})
 }
 
 func handleTimestamp(config *model.Config) (*string, error) {
 	/*
-	All times are in UTC
-	Valid format strings:
-	- A standard Go format string
-	- blank or rfc3339: RFC 3339 format
-	- millis: milliseconds since the epoch
-	 */
+		All times are in UTC
+		Valid format strings:
+		- A standard Go format string
+		- blank or rfc3339: RFC 3339 format
+		- millis: milliseconds since the epoch
+	*/
 	curTime := time.Now().UTC()
 	var format string
 	switch config.VersionFormat {
@@ -122,6 +119,11 @@ func handleTimestamp(config *model.Config) (*string, error) {
 }
 
 func handleSemver(c *gin.Context, user *model.User, hook *model.StatusHook, pr model.PullRequest, config *model.Config, maintainer *model.Maintainer, repo *model.Repo) (*string, error) {
+	alg, err := approval.Lookup(config.ApprovalAlg)
+	if err != nil {
+		log.Warnf("Error getting approval algorithm %s. %s", config.ApprovalAlg, err)
+		return nil, err
+	}
 	// to create the version, need to scan the comments on the pull request to see if anyone specified a version #
 	// if so, use the largest specified version #. if not, increment the last version version # for the release
 	tags, err := remote.ListTags(c, user, hook.Repo)
@@ -136,68 +138,17 @@ func handleSemver(c *gin.Context, user *model.User, hook *model.StatusHook, pr m
 		return nil, err
 	}
 
-	foundVersion := getMaxVersionComment(config, maintainer, pr.Issue, comments)
+	foundVersion := getMaxVersionComment(config, maintainer, pr.Issue, comments, alg)
 
 	if foundVersion != nil && foundVersion.GreaterThan(maxVer) {
 		maxVer = foundVersion
 	} else {
 		maxParts := maxVer.Segments()
-		maxVer, _ = version.NewVersion(fmt.Sprintf("%d.%d.%d", maxParts[0], maxParts[1], maxParts[2] + 1))
+		maxVer, _ = version.NewVersion(fmt.Sprintf("%d.%d.%d", maxParts[0], maxParts[1], maxParts[2]+1))
 	}
 
 	verStr := maxVer.String()
 	return &verStr, nil
-}
-
-// getMaxVersionComment is a helper function that analyzes the list of comments
-// and returns the maximum version found in a comment. if no matching comment is found,
-// the function returns version 0.0.0
-func getMaxVersionComment(config *model.Config, maintainer *model.Maintainer, issue model.Issue, comments []*model.Comment) *version.Version {
-	approverm := map[string]bool{}
-	approvers := []*model.Person{}
-
-	maxVersion, _ := version.NewVersion("0.0.0")
-
-	matcher, err := regexp.Compile(config.Pattern)
-	if err != nil {
-		// this should never happen
-		return maxVersion
-	}
-
-	for _, comment := range comments {
-		// cannot lgtm your own pull request
-		if config.SelfApprovalOff && comment.Author == issue.Author {
-			continue
-		}
-		// the user must be a valid maintainer of the project
-		person, ok := maintainer.People[comment.Author]
-		if !ok {
-			continue
-		}
-		// the same author can't approve something twice
-		if _, ok := approverm[comment.Author]; ok {
-			continue
-		}
-		// verify the comment matches the approval pattern
-		m := matcher.FindStringSubmatch(comment.Body)
-		if len(m) > 0 {
-			approverm[comment.Author] = true
-			approvers = append(approvers, person)
-
-			if len(m) > 1 {
-				//has a version
-				curVersion, err := version.NewVersion(m[1])
-				if err != nil {
-					continue
-				}
-				if curVersion.GreaterThan(maxVersion) {
-					maxVersion = curVersion
-				}
-			}
-		}
-	}
-
-	return maxVersion
 }
 
 // getMaxExistingTag is a helper function that scans all passed-in tags for a
@@ -219,4 +170,35 @@ func getMaxExistingTag(tags []model.Tag) *version.Version {
 
 	log.Debugf("maxVer found is %s", maxVer.String())
 	return maxVer
+}
+
+// getMaxVersionComment is a helper function that analyzes the list of comments
+// and returns the maximum version found in a comment. if no matching comment is found,
+// the function returns version 0.0.0. If there's a bug in the version pattern,
+// nil will be returned.
+func getMaxVersionComment(config *model.Config, maintainer *model.Maintainer,
+	issue model.Issue, comments []*model.Comment, matcher approval.Func) *version.Version {
+	maxVersion, _ := version.NewVersion("0.0.0")
+	ma, err := regexp.Compile(config.Pattern)
+	if err != nil {
+		//this should never happen, unless a bad pattern was provided by the user
+		log.Errorf("Invalid version pattern provided so no comment version tagging will be done: %s", config.Pattern)
+		return nil
+	}
+	matcher(config, maintainer, &issue, comments, func(maintainer *model.Maintainer, comment *model.Comment) {
+		// verify the comment matches the approval pattern
+		m := ma.FindStringSubmatch(comment.Body)
+		if len(m) > 1 {
+			//has a version
+			curVersion, err := version.NewVersion(m[1])
+			if err != nil {
+				return
+			}
+			if maxVersion == nil || curVersion.GreaterThan(maxVersion) {
+				maxVersion = curVersion
+			}
+		}
+	})
+
+	return maxVersion
 }

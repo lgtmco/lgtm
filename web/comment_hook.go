@@ -30,7 +30,8 @@ func processCommentHook(c *gin.Context, hook *model.Hook) {
 		c.String(500, "Error getting approval algorithm %s. %s", config.ApprovalAlg, err)
 		return
 	}
-	approvers := alg(config, maintainer, hook.Issue, comments)
+	approvers := getApprovers(config, maintainer, hook.Issue, comments, alg)
+
 	approved := len(approvers) >= config.Approvals
 	err = remote.SetStatus(c, user, repo, hook.Issue.Number, approved)
 	if err != nil {
@@ -47,4 +48,13 @@ func processCommentHook(c *gin.Context, hook *model.Hook) {
 		"approved":    approved,
 		"approved_by": approvers,
 	})
+}
+
+func getApprovers(config *model.Config, maintainer *model.Maintainer,
+		  issue *model.Issue, comments []*model.Comment, matcher approval.Func) []*model.Person {
+	approvers := []*model.Person{}
+	matcher(config, maintainer, issue, comments, func(maintainer *model.Maintainer, comment *model.Comment) {
+		approvers = append(approvers, maintainer.People[comment.Author])
+	})
+	return approvers
 }
