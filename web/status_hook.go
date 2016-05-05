@@ -8,6 +8,7 @@ import (
 	log "github.com/Sirupsen/logrus"
 	"github.com/hashicorp/go-version"
 	"regexp"
+	"time"
 )
 
 type StatusResponse struct {
@@ -62,37 +63,31 @@ func processStatusHook(c *gin.Context, hook *model.StatusHook) {
 				continue
 			}
 
-			// to create the version, need to scan the comments on the pull request to see if anyone specified a version #
-			// if so, use the largest specified version #. if not, increment the last version version # for the release
-			maxVer, err := remote.GetMaxExistingTag(c, user, hook.Repo)
+			var verStr *string
+
+			switch config.VersionAlg {
+			case "timestamp":
+				verStr, err = handleTimestamp(config)
+			case "semver":
+				verStr, err = handleSemver(c, user, hook, v, config, maintainer, repo)
+			default:
+				log.Warnf("Should have had a valid version algorithm configed at this point -- using semver")
+				verStr, err = handleSemver(c, user, hook, v, config, maintainer, repo)
+
+			}
+			if config.VersionAlg == "semver" {
+				verStr, err = handleSemver(c, user, hook, v, config, maintainer, repo)
+			}
 			if err != nil {
-				log.Warnf("Unable to find the max version tag for %s/%s: %s", hook.Repo.Owner, hook.Repo.Name, err)
 				continue
 			}
-
-			comments, err := getComments(c, user, repo, v.Number)
-			if err != nil {
-				log.Warnf("Unable to find the comments for pull request %s: %s", v.Title, err)
-				continue
-			}
-
-			foundVersion := getMaxVersionComment(config, maintainer, v.Issue,comments)
-
-			if foundVersion != nil && foundVersion.GreaterThan(maxVer) {
-				maxVer = foundVersion
-			} else {
-				maxParts := maxVer.Segments()
-				maxVer, _ = version.NewVersion(fmt.Sprintf("%d.%d.%d", maxParts[0], maxParts[1], maxParts[2] + 1))
-			}
-
-			err = remote.Tag(c, user, repo, maxVer, sha)
+			err = remote.Tag(c, user, repo, verStr, sha)
 			if err != nil {
 				log.Warnf("Unable to tag branch %s: %s", v.Title, err)
 				continue
 			}
-			verStr := maxVer.String()
 			result := merged[v.Title]
-			result.Version = &verStr
+			result.Version = verStr
 		}
 	}
 	log.Debugf("processed status for %s. received %v ", repo.Slug, hook)
@@ -102,19 +97,72 @@ func processStatusHook(c *gin.Context, hook *model.StatusHook) {
 	})
 }
 
+func handleTimestamp(config *model.Config) (*string, error) {
+	/*
+	All times are in UTC
+	Valid format strings:
+	- A standard Go format string
+	- blank or rfc3339: RFC 3339 format
+	- millis: milliseconds since the epoch
+	 */
+	curTime := time.Now().UTC()
+	var format string
+	switch config.VersionFormat {
+	case "millis":
+		//special case, return from here
+		out := fmt.Sprintf("%d", curTime.Unix())
+		return &out, nil
+	case "rfc3339", "":
+		format = time.RFC3339
+	default:
+		format = config.VersionFormat
+	}
+	out := curTime.Format(format)
+	return &out, nil
+}
+
+func handleSemver(c *gin.Context, user *model.User, hook *model.StatusHook, pr model.PullRequest, config *model.Config, maintainer *model.Maintainer, repo *model.Repo) (*string, error) {
+	// to create the version, need to scan the comments on the pull request to see if anyone specified a version #
+	// if so, use the largest specified version #. if not, increment the last version version # for the release
+	tags, err := remote.ListTags(c, user, hook.Repo)
+	if err != nil {
+		log.Warnf("Unable to list tags for %s/%s: %s", hook.Repo.Owner, hook.Repo.Name, err)
+	}
+	maxVer := getMaxExistingTag(tags)
+
+	comments, err := getComments(c, user, repo, pr.Number)
+	if err != nil {
+		log.Warnf("Unable to find the comments for pull request %s: %s", pr.Title, err)
+		return nil, err
+	}
+
+	foundVersion := getMaxVersionComment(config, maintainer, pr.Issue, comments)
+
+	if foundVersion != nil && foundVersion.GreaterThan(maxVer) {
+		maxVer = foundVersion
+	} else {
+		maxParts := maxVer.Segments()
+		maxVer, _ = version.NewVersion(fmt.Sprintf("%d.%d.%d", maxParts[0], maxParts[1], maxParts[2] + 1))
+	}
+
+	verStr := maxVer.String()
+	return &verStr, nil
+}
+
 // getMaxVersionComment is a helper function that analyzes the list of comments
-// and returns the maximum version found in a comment.
+// and returns the maximum version found in a comment. if no matching comment is found,
+// the function returns version 0.0.0
 func getMaxVersionComment(config *model.Config, maintainer *model.Maintainer, issue model.Issue, comments []*model.Comment) *version.Version {
 	approverm := map[string]bool{}
 	approvers := []*model.Person{}
 
+	maxVersion, _ := version.NewVersion("0.0.0")
+
 	matcher, err := regexp.Compile(config.Pattern)
 	if err != nil {
 		// this should never happen
-		return nil
+		return maxVersion
 	}
-
-	var maxVersion *version.Version
 
 	for _, comment := range comments {
 		// cannot lgtm your own pull request
@@ -142,7 +190,7 @@ func getMaxVersionComment(config *model.Config, maintainer *model.Maintainer, is
 				if err != nil {
 					continue
 				}
-				if maxVersion == nil || curVersion.GreaterThan(maxVersion) {
+				if curVersion.GreaterThan(maxVersion) {
 					maxVersion = curVersion
 				}
 			}
@@ -150,4 +198,25 @@ func getMaxVersionComment(config *model.Config, maintainer *model.Maintainer, is
 	}
 
 	return maxVersion
+}
+
+// getMaxExistingTag is a helper function that scans all passed-in tags for a
+// comments with semantic versions. It returns the max version found. If no version
+// is found, the function returns a version with the value 0.0.0
+func getMaxExistingTag(tags []model.Tag) *version.Version {
+	//find the previous largest semver value
+	maxVer, _ := version.NewVersion("v0.0.0")
+
+	for _, v := range tags {
+		curVer, err := version.NewVersion(string(v))
+		if err != nil {
+			continue
+		}
+		if curVer.GreaterThan(maxVer) {
+			maxVer = curVer
+		}
+	}
+
+	log.Debugf("maxVer found is %s", maxVer.String())
+	return maxVer
 }

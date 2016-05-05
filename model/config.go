@@ -14,6 +14,8 @@ type Config struct {
 	DoMerge         bool `json:"do_merge" toml:"do_merge"`
 	DoVersion       bool `json:"do_version" toml:"do_version"`
 	ApprovalAlg     string `json:"approval_algorithm" toml:"approval_algorithm"`
+	VersionAlg      string `json:"version_algorithm" toml:"version_algorithm"`
+	VersionFormat string `json:"version_format" toml:"version_format"`
 
 	re              *regexp.Regexp
 }
@@ -41,6 +43,9 @@ func ParseConfigStr(data string) (*Config, error) {
 	}
 	if len(c.ApprovalAlg) == 0 {
 		c.ApprovalAlg = "simple"
+	}
+	if len(c.VersionAlg) == 0 {
+		c.VersionAlg = "semver"
 	}
 	c.re, err = regexp.Compile(c.Pattern)
 	return c, err
