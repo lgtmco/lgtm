@@ -12,7 +12,6 @@ import (
 	"github.com/lgtmco/lgtm/model"
 	"github.com/lgtmco/lgtm/shared/httputil"
 	"golang.org/x/oauth2"
-	"github.com/hashicorp/go-version"
 	"errors"
 )
 
@@ -447,39 +446,26 @@ func (g *Github) MergePR(u *model.User, r *model.Repo, pullRequest model.PullReq
 	return result.SHA, nil
 }
 
-func (g *Github) GetMaxExistingTag(u *model.User, r *model.Repo) (*version.Version, error) {
+func (g *Github) ListTags(u *model.User, r *model.Repo) ([]model.Tag, error) {
 	client := setupClient(g.API, u.Token)
-
-	//find the previous largest semver value
-	var maxVer *version.Version
 
 	tags, _, err := client.Repositories.ListTags(r.Owner, r.Name, nil)
 	if err != nil {
 		return nil, err
 	}
-	for _, v := range tags {
-		curVer, err := version.NewVersion(*v.Name)
-		if err != nil {
-			continue
-		}
-		if maxVer == nil || curVer.GreaterThan(maxVer) {
-			maxVer = curVer
-		}
+	out := make([]model.Tag,len(tags))
+	for k, v := range tags {
+		out[k] = model.Tag(*v.Name)
 	}
-
-	if maxVer == nil {
-		maxVer, _ = version.NewVersion("v0.0.0")
-	}
-	log.Debugf("maxVer found is %s", maxVer.String())
-	return maxVer, nil
+	return out, nil
 }
 
-func (g *Github) Tag(u *model.User, r *model.Repo, version *version.Version, sha *string) error {
+func (g *Github) Tag(u *model.User, r *model.Repo, version *string, sha *string) error {
 	client := setupClient(g.API, u.Token)
 
 	t := time.Now()
 	tag, _, err := client.Git.CreateTag(r.Owner, r.Name, &github.Tag{
-		Tag:     github.String(version.String()),
+		Tag:     version,
 		SHA:     sha,
 		Message: github.String("Tagged by LGTM"),
 		Tagger: &github.CommitAuthor{
@@ -497,7 +483,7 @@ func (g *Github) Tag(u *model.User, r *model.Repo, version *version.Version, sha
 		return err
 	}
 	_, _, err = client.Git.CreateRef(r.Owner, r.Name, &github.Reference{
-		Ref: github.String("refs/tags/" + version.String()),
+		Ref: github.String("refs/tags/" + *version),
 		Object: &github.GitObject{
 			SHA: tag.SHA,
 		},

@@ -7,7 +7,6 @@ import (
 
 	"github.com/lgtmco/lgtm/model"
 	"golang.org/x/net/context"
-	"github.com/hashicorp/go-version"
 )
 
 type Remote interface {
@@ -61,10 +60,10 @@ type Remote interface {
 	MergePR(u *model.User, r *model.Repo, pullRequest model.PullRequest) (*string, error)
 
 	// GetMaxExistingTag finds the highest version across all tags
-	GetMaxExistingTag(u *model.User, r *model.Repo) (*version.Version, error)
+	ListTags(u *model.User, r *model.Repo) ([]model.Tag, error)
 
 	// Tag applies a tag with the specified version to the specified sha
-	Tag(u *model.User, r *model.Repo, version *version.Version, sha *string) error
+	Tag(u *model.User, r *model.Repo, version *string, sha *string) error
 
 	// GetPullRequestsForCommit returns all pull requests associated with a commit SHA
 	GetPullRequestsForCommit(u *model.User, r *model.Repo, sha *string) ([]model.PullRequest, error)
@@ -150,11 +149,11 @@ func MergePR(c context.Context, u *model.User, r *model.Repo, pullRequest model.
 	return FromContext(c).MergePR(u, r, pullRequest)
 }
 
-func GetMaxExistingTag(c context.Context, u *model.User, r *model.Repo) (*version.Version, error) {
-	return FromContext(c).GetMaxExistingTag(u, r)
+func ListTags(c context.Context, u *model.User, r *model.Repo) ([]model.Tag, error) {
+	return FromContext(c).ListTags(u, r)
 }
 
-func Tag(c context.Context, u *model.User, r *model.Repo, version *version.Version, sha *string) error {
+func Tag(c context.Context, u *model.User, r *model.Repo, version *string, sha *string) error {
 	return FromContext(c).Tag(u, r, version, sha)
 }
 
