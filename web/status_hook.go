@@ -2,14 +2,14 @@ package web
 
 import (
 	"fmt"
+	log "github.com/Sirupsen/logrus"
 	"github.com/gin-gonic/gin"
+	"github.com/hashicorp/go-version"
+	"github.com/lgtmco/lgtm/approval"
 	"github.com/lgtmco/lgtm/model"
 	"github.com/lgtmco/lgtm/remote"
-	log "github.com/Sirupsen/logrus"
-	"github.com/hashicorp/go-version"
 	"regexp"
 	"time"
-	"github.com/lgtmco/lgtm/approval"
 )
 
 type StatusResponse struct {
@@ -29,8 +29,7 @@ func processStatusHook(c *gin.Context, hook *model.StatusHook) {
 	}
 
 	if !config.DoMerge {
-		c.IndentedJSON(200, gin.H{
-		})
+		c.IndentedJSON(200, gin.H{})
 		return
 	}
 
@@ -91,18 +90,18 @@ func processStatusHook(c *gin.Context, hook *model.StatusHook) {
 	log.Debugf("processed status for %s. received %v ", repo.Slug, hook)
 
 	c.IndentedJSON(200, gin.H{
-		"merged":    merged,
+		"merged": merged,
 	})
 }
 
 func handleTimestamp(config *model.Config) (*string, error) {
 	/*
-	All times are in UTC
-	Valid format strings:
-	- A standard Go format string
-	- blank or rfc3339: RFC 3339 format
-	- millis: milliseconds since the epoch
-	 */
+		All times are in UTC
+		Valid format strings:
+		- A standard Go format string
+		- blank or rfc3339: RFC 3339 format
+		- millis: milliseconds since the epoch
+	*/
 	curTime := time.Now().UTC()
 	var format string
 	switch config.VersionFormat {
@@ -145,7 +144,7 @@ func handleSemver(c *gin.Context, user *model.User, hook *model.StatusHook, pr m
 		maxVer = foundVersion
 	} else {
 		maxParts := maxVer.Segments()
-		maxVer, _ = version.NewVersion(fmt.Sprintf("%d.%d.%d", maxParts[0], maxParts[1], maxParts[2] + 1))
+		maxVer, _ = version.NewVersion(fmt.Sprintf("%d.%d.%d", maxParts[0], maxParts[1], maxParts[2]+1))
 	}
 
 	verStr := maxVer.String()
@@ -175,13 +174,15 @@ func getMaxExistingTag(tags []model.Tag) *version.Version {
 
 // getMaxVersionComment is a helper function that analyzes the list of comments
 // and returns the maximum version found in a comment. if no matching comment is found,
-// the function returns version 0.0.0
+// the function returns version 0.0.0. If there's a bug in the version pattern,
+// nil will be returned.
 func getMaxVersionComment(config *model.Config, maintainer *model.Maintainer,
-issue model.Issue, comments []*model.Comment, matcher approval.Func) *version.Version {
+	issue model.Issue, comments []*model.Comment, matcher approval.Func) *version.Version {
 	maxVersion, _ := version.NewVersion("0.0.0")
 	ma, err := regexp.Compile(config.Pattern)
 	if err != nil {
-		//this should never happen
+		//this should never happen, unless a bad pattern was provided by the user
+		log.Errorf("Invalid version pattern provided so no comment version tagging will be done: %s", config.Pattern)
 		return nil
 	}
 	matcher(config, maintainer, &issue, comments, func(maintainer *model.Maintainer, comment *model.Comment) {
