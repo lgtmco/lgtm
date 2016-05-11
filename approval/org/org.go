@@ -32,11 +32,11 @@ func Org(config *model.Config, maintainer *model.Maintainer, issue *model.Issue,
 		//value is name of person in the org
 		for _, name := range v.People {
 			if name == issue.Author {
-				authorOrg = name
+				authorOrg = k
 			}
 			m, ok := orgMap[name]
 			if !ok {
-				m := map[string]bool{}
+				m = map[string]bool{}
 				orgMap[name] = m
 			}
 			m[k] = true
