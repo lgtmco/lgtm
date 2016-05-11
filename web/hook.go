@@ -30,10 +30,32 @@ func Hook(c *gin.Context) {
 		processStatusHook(c, statusHook)
 	}
 
-	if hook == nil && statusHook == nil {
+	prHook, err := remote.GetPRHook(c, c.Request)
+	if prHook != nil {
+		processPRHook(c, prHook)
+	}
+
+	if err != nil {
+		log.Errorf("Error parsing pull request hook. %s", err)
+		c.String(500, "Error parsing pull request hook. %s", err)
+		return
+	}
+	if hook == nil && statusHook == nil && prHook == nil {
 		c.String(200, "pong")
 		return
 	}
+}
+
+func processPRHook(c *gin.Context, prHook *model.PRHook) {
+	repo, user, err := getRepoAndUser(c, prHook.Repo.Slug)
+	if err != nil {
+		return
+	}
+	remote.SetStatus(c, user, repo, prHook.Number, false)
+	c.IndentedJSON(200, gin.H{
+		"number":   prHook.Number,
+		"approved":    false,
+	})
 }
 
 func getRepoAndUser(c *gin.Context, slug string) (*model.Repo, *model.User, error){
