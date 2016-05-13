@@ -35,6 +35,7 @@ func processStatusHook(c *gin.Context, hook *model.StatusHook) {
 
 	merged := map[string]StatusResponse{}
 
+	log.Debug("calling getPullRequestsForCommit for sha",hook.SHA)
 	pullRequests, err := remote.GetPullRequestsForCommit(c, user, hook.Repo, &hook.SHA)
 	log.Debugf("sha for commit is %s, pull requests are: %s", hook.SHA, pullRequests)
 
@@ -76,8 +77,10 @@ func processStatusHook(c *gin.Context, hook *model.StatusHook) {
 
 			}
 			if err != nil {
+				log.Warnf("Unable to generate a version tag: %s",err.Error())
 				continue
 			}
+			log.Debugf("Tagging merge from PR with tag: %s", *verStr)
 			err = remote.Tag(c, user, repo, verStr, sha)
 			if err != nil {
 				log.Warnf("Unable to tag branch %s: %s", v.Title, err)

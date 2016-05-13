@@ -413,7 +413,7 @@ func (g *Github) GetPRHook(r *http.Request) (*model.PRHook, error) {
 
 func (g *Github) GetPullRequestsForCommit(u *model.User, r *model.Repo, sha *string) ([]model.PullRequest, error) {
 	client := setupClient(g.API, u.Token)
-	fmt.Println("sha == ", sha, *sha)
+	log.Debug("sha == ", sha, *sha)
 	issues, _, err := client.Search.Issues(fmt.Sprintf("%s&type=pr", *sha), &github.SearchOptions {
 		TextMatch: false,
 	})
@@ -436,6 +436,10 @@ func (g *Github) GetPullRequestsForCommit(u *model.User, r *model.Repo, sha *str
 		if err != nil {
 			return nil, err
 		}
+
+		log.Debug("current issue ==", v)
+		log.Debug("current pr ==", *pr)
+		log.Debug("combined status ==",*status)
 
 		out[k] = model.PullRequest{
 			Issue: model.Issue{
