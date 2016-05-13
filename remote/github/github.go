@@ -379,9 +379,41 @@ func (g *Github) GetStatusHook(r *http.Request) (*model.StatusHook, error) {
 	return hook, nil
 }
 
+func (g *Github) GetPRHook(r *http.Request) (*model.PRHook, error) {
+
+	// only process comment hooks
+	if r.Header.Get("X-Github-Event") != "pull_request" {
+		return nil, nil
+	}
+
+	data := prHook{}
+	err := json.NewDecoder(r.Body).Decode(&data)
+	if err != nil {
+		return nil, err
+	}
+
+	log.Debug(data)
+
+	if data.Action != "opened" {
+		return nil, nil
+	}
+
+	hook := new(model.PRHook)
+
+	hook.Number = data.Number
+	hook.Repo = new(model.Repo)
+	hook.Repo.Owner = data.Repository.Owner.Login
+	hook.Repo.Name = data.Repository.Name
+	hook.Repo.Slug = data.Repository.FullName
+
+	log.Debug(*hook)
+
+	return hook, nil
+}
+
 func (g *Github) GetPullRequestsForCommit(u *model.User, r *model.Repo, sha *string) ([]model.PullRequest, error) {
 	client := setupClient(g.API, u.Token)
-	fmt.Println("sha == ", sha, *sha)
+	log.Debug("sha == ", sha, *sha)
 	issues, _, err := client.Search.Issues(fmt.Sprintf("%s&type=pr", *sha), &github.SearchOptions {
 		TextMatch: false,
 	})
@@ -404,6 +436,10 @@ func (g *Github) GetPullRequestsForCommit(u *model.User, r *model.Repo, sha *str
 		if err != nil {
 			return nil, err
 		}
+
+		log.Debug("current issue ==", v)
+		log.Debug("current pr ==", *pr)
+		log.Debug("combined status ==",*status)
 
 		out[k] = model.PullRequest{
 			Issue: model.Issue{

@@ -53,6 +53,9 @@ type Remote interface {
 	// GetStatusHook gets the status hook from the http Request.
 	GetStatusHook(r *http.Request) (*model.StatusHook, error)
 
+	// GetPRHook gets the pull request hook from the http Request.
+	GetPRHook(r *http.Request) (*model.PRHook, error)
+
 	// GetBranchStatus returns overall status for the named branch from the remote system
 	GetBranchStatus(*model.User, *model.Repo, string) (*model.BranchStatus, error)
 
@@ -138,6 +141,11 @@ func GetHook(c context.Context, r *http.Request) (*model.Hook, error) {
 // GetStatusHook gets the status hook from the http Request.
 func GetStatusHook(c context.Context, r *http.Request) (*model.StatusHook, error) {
 	return FromContext(c).GetStatusHook(r)
+}
+
+// GetPRHook gets the pull request hook from the http Request.
+func GetPRHook(c context.Context, r *http.Request) (*model.PRHook, error) {
+	return FromContext(c).GetPRHook(r)
 }
 
 // GetBranchStatus gets the overal status for a branch from the remote repository.

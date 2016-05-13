@@ -56,6 +56,13 @@ type statusHook struct {
 	Repository Repository `json:"repository"`
 }
 
+type prHook struct {
+	Action string `json:"action"`
+	Number int `json:"number"`
+
+	Repository Repository `json:"repository"`
+}
+
 type 	Repository struct {
 	Name     string `json:"name"`
 	FullName string `json:"full_name"`

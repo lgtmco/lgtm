@@ -15,3 +15,8 @@ type Branch struct {
 	BranchStatus string
 	Mergeable    bool
 }
+
+type PRHook struct {
+	Number int
+	Repo    *Repo
+}
