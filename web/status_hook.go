@@ -97,11 +97,12 @@ func processStatusHook(c *gin.Context, hook *model.StatusHook) {
 	})
 }
 
+const modifiedRFC3339= "2006-01-02T15.04.05Z"
+
 func handleTimestamp(config *model.Config) (*string, error) {
 	/*
 		All times are in UTC
 		Valid format strings:
-		- A standard Go format string
 		- blank or rfc3339: RFC 3339 format
 		- millis: milliseconds since the epoch
 	*/
@@ -113,9 +114,10 @@ func handleTimestamp(config *model.Config) (*string, error) {
 		out := fmt.Sprintf("%d", curTime.Unix())
 		return &out, nil
 	case "rfc3339", "":
-		format = time.RFC3339
+		format = modifiedRFC3339
 	default:
-		format = config.VersionFormat
+		log.Warnf("invalid version format %s. Using modified rfc3339",config.VersionFormat)
+		format = modifiedRFC3339
 	}
 	out := curTime.Format(format)
 	return &out, nil
