@@ -42,11 +42,11 @@ func TestHandleTimestampBlank(t *testing.T) {
 		t.Errorf("didn't expect error: %v", err)
 	}
 	//should be able to parse with rfc3339
-	t2, err := time.Parse(time.RFC3339, *stamp)
+	t2, err := time.Parse(modifiedRFC3339, *stamp)
 	if err != nil {
 		t.Error(err)
 	}
-	round := t2.Format(time.RFC3339)
+	round := t2.Format(modifiedRFC3339)
 	if round != *stamp {
 		t.Errorf("Expected to be same, but wasn't %s, %s", *stamp, round)
 	}
@@ -62,11 +62,11 @@ func TestHandleTimestamp3339(t *testing.T) {
 		t.Errorf("didn't expect error: %v", err)
 	}
 	//should be able to parse with rfc3339
-	t2, err := time.Parse(time.RFC3339, *stamp)
+	t2, err := time.Parse(modifiedRFC3339, *stamp)
 	if err != nil {
 		t.Error(err)
 	}
-	round := t2.Format(time.RFC3339)
+	round := t2.Format(modifiedRFC3339)
 	if round != *stamp {
 		t.Errorf("Expected to be same, but wasn't %s, %s", *stamp, round)
 	}
@@ -83,11 +83,11 @@ func TestHandleTimestampCustom(t *testing.T) {
 		t.Errorf("didn't expect error: %v", err)
 	}
 	//should be able to parse with custom
-	t2, err := time.Parse(c.VersionFormat, *stamp)
+	t2, err := time.Parse(modifiedRFC3339, *stamp)
 	if err != nil {
 		t.Error(err)
 	}
-	round := t2.Format(c.VersionFormat)
+	round := t2.Format(modifiedRFC3339)
 	if round != *stamp {
 		t.Errorf("Expected to be same, but wasn't %s, %s", *stamp, round)
 	}
