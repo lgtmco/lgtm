@@ -78,9 +78,10 @@ func processStatusHook(c *gin.Context, hook *model.StatusHook) {
 			if err != nil {
 				continue
 			}
+			log.Debugf("Tagging merge from PR with tag: %s", *verStr)
 			err = remote.Tag(c, user, repo, verStr, sha)
 			if err != nil {
-				log.Warnf("Unable to tag branch %s: %s", v.Title, err)
+				log.Warnf("Unable to tag merge from PR %s: %s", v.Title, err)
 				continue
 			}
 			result := merged[v.Title]
