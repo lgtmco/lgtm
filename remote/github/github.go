@@ -441,6 +441,17 @@ func (g *Github) GetPullRequestsForCommit(u *model.User, r *model.Repo, sha *str
 		log.Debug("current pr ==", *pr)
 		log.Debug("combined status ==",*status)
 
+		combinedState := *status.State
+		if combinedState == "success" {
+			log.Debug("overall status is success -- checking to see if all status checks returned success")
+			for _, v := range status.Statuses {
+				log.Debugf("status check %s returned %s",*v.Context, *v.State)
+				if *v.State != "success" {
+					log.Debugf("setting combined status check to %s",*v.State)
+					combinedState = *v.State
+				}
+			}
+		}
 		out[k] = model.PullRequest{
 			Issue: model.Issue{
 				Number: *v.Number,
@@ -449,7 +460,7 @@ func (g *Github) GetPullRequestsForCommit(u *model.User, r *model.Repo, sha *str
 			},
 			Branch:  model.Branch {
 				Name: *pr.Head.Ref,
-				BranchStatus: *status.State,
+				BranchStatus: combinedState,
 				Mergeable: mergeable,
 
 			},
