@@ -498,6 +498,7 @@ func (g *Github) MergePR(u *model.User, r *model.Repo, pullRequest model.PullReq
 			}
 			apps += "\n"
 		}
+		msg += apps
 	}
 	result, _, err := client.PullRequests.Merge(r.Owner, r.Name, pullRequest.Number, msg)
 	if err != nil {
