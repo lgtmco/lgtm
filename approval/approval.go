@@ -25,7 +25,7 @@ func Register(name string, f Func) error {
 
 func Lookup(name string) (Func, error) {
 	log.Debug("approvalMap has",approvalMap)
-	log.Debug("looking for '%s'\n",name)
+	log.Debugf("looking for '%s'\n",name)
 	f, ok := approvalMap[strings.ToLower(name)]
 	if !ok {
 		return nil, fmt.Errorf("Unknown Approval Algorithm %s", name)
