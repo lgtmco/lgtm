@@ -414,7 +414,7 @@ func (g *Github) GetPRHook(r *http.Request) (*model.PRHook, error) {
 func (g *Github) GetPullRequestsForCommit(u *model.User, r *model.Repo, sha *string) ([]model.PullRequest, error) {
 	client := setupClient(g.API, u.Token)
 	log.Debug("sha == ", sha, *sha)
-	issues, _, err := client.Search.Issues(fmt.Sprintf("%s&type=pr", *sha), &github.SearchOptions {
+	issues, _, err := client.Search.Issues(fmt.Sprintf("%s&type=pr", *sha), &github.SearchOptions{
 		TextMatch: false,
 	})
 	if err != nil {
@@ -427,7 +427,7 @@ func (g *Github) GetPullRequestsForCommit(u *model.User, r *model.Repo, sha *str
 			return nil, err
 		}
 
-		mergeable:= true
+		mergeable := true
 		if pr.Mergeable != nil {
 			mergeable = *pr.Mergeable
 		}
@@ -439,15 +439,15 @@ func (g *Github) GetPullRequestsForCommit(u *model.User, r *model.Repo, sha *str
 
 		log.Debug("current issue ==", v)
 		log.Debug("current pr ==", *pr)
-		log.Debug("combined status ==",*status)
+		log.Debug("combined status ==", *status)
 
 		combinedState := *status.State
 		if combinedState == "success" {
 			log.Debug("overall status is success -- checking to see if all status checks returned success")
 			for _, v := range status.Statuses {
-				log.Debugf("status check %s returned %s",*v.Context, *v.State)
+				log.Debugf("status check %s returned %s", *v.Context, *v.State)
 				if *v.State != "success" {
-					log.Debugf("setting combined status check to %s",*v.State)
+					log.Debugf("setting combined status check to %s", *v.State)
 					combinedState = *v.State
 				}
 			}
@@ -458,7 +458,7 @@ func (g *Github) GetPullRequestsForCommit(u *model.User, r *model.Repo, sha *str
 				Title: *v.Title,
 				Author: *v.User.Login,
 			},
-			Branch:  model.Branch {
+			Branch:  model.Branch{
 				Name: *pr.Head.Ref,
 				BranchStatus: combinedState,
 				Mergeable: mergeable,
@@ -479,10 +479,27 @@ func (g *Github) GetBranchStatus(u *model.User, r *model.Repo, branch string) (*
 	return (*model.BranchStatus)(statuses.State), nil
 }
 
-func (g *Github) MergePR(u *model.User, r *model.Repo, pullRequest model.PullRequest) (*string, error) {
+func (g *Github) MergePR(u *model.User, r *model.Repo, pullRequest model.PullRequest, approvers []*model.Person) (*string, error) {
 	client := setupClient(g.API, u.Token)
 
-	result, _, err := client.PullRequests.Merge(r.Owner, r.Name, pullRequest.Number, "Merged by LGTM")
+	msg := "Merged by LGTM\n"
+	if len(approvers) > 0 {
+		apps := "Approved by:\n"
+		for _, v := range approvers {
+			//Brad Rydzewski <brad.rydzewski@mail.com> (@bradrydzewski)
+			if len(v.Name) > 0 {
+				apps += fmt.Sprintf("%s", v.Name)
+			}
+			if len(v.Email) > 0 {
+				apps += fmt.Sprintf(" <%s>", v.Email)
+			}
+			if len(v.Login) > 0 {
+				apps += fmt.Sprintf(" (@%s)", v.Login)
+			}
+			apps += "\n"
+		}
+	}
+	result, _, err := client.PullRequests.Merge(r.Owner, r.Name, pullRequest.Number, msg)
 	if err != nil {
 		return nil, err
 	}
@@ -500,7 +517,7 @@ func (g *Github) ListTags(u *model.User, r *model.Repo) ([]model.Tag, error) {
 	if err != nil {
 		return nil, err
 	}
-	out := make([]model.Tag,len(tags))
+	out := make([]model.Tag, len(tags))
 	for k, v := range tags {
 		out[k] = model.Tag(*v.Name)
 	}

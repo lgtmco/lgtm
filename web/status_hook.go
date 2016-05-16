@@ -35,7 +35,7 @@ func processStatusHook(c *gin.Context, hook *model.StatusHook) {
 
 	merged := map[string]StatusResponse{}
 
-	log.Debug("calling getPullRequestsForCommit for sha",hook.SHA)
+	log.Debug("calling getPullRequestsForCommit for sha", hook.SHA)
 	pullRequests, err := remote.GetPullRequestsForCommit(c, user, hook.Repo, &hook.SHA)
 	log.Debugf("sha for commit is %s, pull requests are: %s", hook.SHA, pullRequests)
 
@@ -48,7 +48,12 @@ func processStatusHook(c *gin.Context, hook *model.StatusHook) {
 	for _, v := range pullRequests {
 		//if all of the statuses are success, then merge and create a tag for the version
 		if v.Branch.BranchStatus == "success" && v.Branch.Mergeable {
-			sha, err := remote.MergePR(c, user, hook.Repo, v)
+			approvers, err := buildApprovers(c, user, repo, config, maintainer, &v.Issue)
+			if err != nil {
+				log.Warnf("Unable to merge pull request %s: %s", v.Title, err)
+				continue
+			}
+			sha, err := remote.MergePR(c, user, hook.Repo, v, approvers)
 			if err != nil {
 				log.Warnf("Unable to merge pull request %s: %s", v.Title, err)
 				continue
@@ -77,7 +82,7 @@ func processStatusHook(c *gin.Context, hook *model.StatusHook) {
 
 			}
 			if err != nil {
-				log.Warnf("Unable to generate a version tag: %s",err.Error())
+				log.Warnf("Unable to generate a version tag: %s", err.Error())
 				continue
 			}
 			log.Debugf("Tagging merge from PR with tag: %s", *verStr)
@@ -97,7 +102,7 @@ func processStatusHook(c *gin.Context, hook *model.StatusHook) {
 	})
 }
 
-const modifiedRFC3339= "2006-01-02T15.04.05Z"
+const modifiedRFC3339 = "2006-01-02T15.04.05Z"
 
 func handleTimestamp(config *model.Config) (*string, error) {
 	/*
@@ -116,7 +121,7 @@ func handleTimestamp(config *model.Config) (*string, error) {
 	case "rfc3339", "":
 		format = modifiedRFC3339
 	default:
-		log.Warnf("invalid version format %s. Using modified rfc3339",config.VersionFormat)
+		log.Warnf("invalid version format %s. Using modified rfc3339", config.VersionFormat)
 		format = modifiedRFC3339
 	}
 	out := curTime.Format(format)
@@ -149,7 +154,7 @@ func handleSemver(c *gin.Context, user *model.User, hook *model.StatusHook, pr m
 		maxVer = foundVersion
 	} else {
 		maxParts := maxVer.Segments()
-		maxVer, _ = version.NewVersion(fmt.Sprintf("%d.%d.%d", maxParts[0], maxParts[1], maxParts[2]+1))
+		maxVer, _ = version.NewVersion(fmt.Sprintf("%d.%d.%d", maxParts[0], maxParts[1], maxParts[2] + 1))
 	}
 
 	verStr := maxVer.String()
@@ -182,7 +187,7 @@ func getMaxExistingTag(tags []model.Tag) *version.Version {
 // the function returns version 0.0.0. If there's a bug in the version pattern,
 // nil will be returned.
 func getMaxVersionComment(config *model.Config, maintainer *model.Maintainer,
-	issue model.Issue, comments []*model.Comment, matcher approval.Func) *version.Version {
+issue model.Issue, comments []*model.Comment, matcher approval.Func) *version.Version {
 	maxVersion, _ := version.NewVersion("0.0.0")
 	ma, err := regexp.Compile(config.Pattern)
 	if err != nil {

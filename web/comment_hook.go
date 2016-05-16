@@ -19,18 +19,10 @@ func processCommentHook(c *gin.Context, hook *model.Hook) {
 		return
 	}
 
-	comments, err := getComments(c, user, repo, hook.Issue.Number)
+	approvers, err := buildApprovers(c, user, repo, config, maintainer, hook.Issue)
 	if err != nil {
 		return
 	}
-
-	alg, err := approval.Lookup(config.ApprovalAlg)
-	if err != nil {
-		log.Errorf("Error getting approval algorithm %s. %s", config.ApprovalAlg, err)
-		c.String(500, "Error getting approval algorithm %s. %s", config.ApprovalAlg, err)
-		return
-	}
-	approvers := getApprovers(config, maintainer, hook.Issue, comments, alg)
 
 	approved := len(approvers) >= config.Approvals
 	err = remote.SetStatus(c, user, repo, hook.Issue.Number, approved)
@@ -50,8 +42,25 @@ func processCommentHook(c *gin.Context, hook *model.Hook) {
 	})
 }
 
-func getApprovers(config *model.Config, maintainer *model.Maintainer,
-		  issue *model.Issue, comments []*model.Comment, matcher approval.Func) []*model.Person {
+func buildApprovers(c *gin.Context, user *model.User, repo *model.Repo, config *model.Config, maintainer *model.Maintainer, issue *model.Issue) ([]*model.Person, error) {
+	comments, err := getComments(c, user, repo, issue.Number)
+	if err != nil {
+		log.Errorf("Error getting comments for %s/%s/%d", repo.Owner, repo.Name, issue.Number)
+		c.String(500, "Error getting comments for %s/%s/%d", repo.Owner, repo.Name, issue.Number)
+		return nil, err
+	}
+
+	alg, err := approval.Lookup(config.ApprovalAlg)
+	if err != nil {
+		log.Errorf("Error getting approval algorithm %s. %s", config.ApprovalAlg, err)
+		c.String(500, "Error getting approval algorithm %s. %s", config.ApprovalAlg, err)
+		return nil, err
+	}
+	approvers := getApprovers(config, maintainer, issue, comments, alg)
+	return approvers, nil
+}
+
+func getApprovers(config *model.Config, maintainer *model.Maintainer, issue *model.Issue, comments []*model.Comment, matcher approval.Func) []*model.Person {
 	approvers := []*model.Person{}
 	matcher(config, maintainer, issue, comments, func(maintainer *model.Maintainer, comment *model.Comment) {
 		approvers = append(approvers, maintainer.People[comment.Author])

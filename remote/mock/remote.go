@@ -348,7 +348,7 @@ func (_m *Remote) GetUserToken(_a0 string) (string, error) {
 }
 
 // MergePR provides a mock function with given fields: u, r, pullRequest
-func (_m *Remote) MergePR(u *model.User, r *model.Repo, pullRequest model.PullRequest) (*string, error) {
+func (_m *Remote) MergePR(u *model.User, r *model.Repo, pullRequest model.PullRequest, approvers []*model.Person) (*string, error) {
 	ret := _m.Called(u, r, pullRequest)
 
 	var r0 *string
