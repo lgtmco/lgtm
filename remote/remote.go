@@ -60,7 +60,7 @@ type Remote interface {
 	GetBranchStatus(*model.User, *model.Repo, string) (*model.BranchStatus, error)
 
 	// MergePR merges the named pull request from the remote system
-	MergePR(u *model.User, r *model.Repo, pullRequest model.PullRequest) (*string, error)
+	MergePR(u *model.User, r *model.Repo, pullRequest model.PullRequest, approvers []*model.Person) (*string, error)
 
 	// GetMaxExistingTag finds the highest version across all tags
 	ListTags(u *model.User, r *model.Repo) ([]model.Tag, error)
@@ -153,8 +153,8 @@ func GetBranchStatus(c context.Context, u *model.User, r *model.Repo, branch str
 	return FromContext(c).GetBranchStatus(u, r, branch)
 }
 
-func MergePR(c context.Context, u *model.User, r *model.Repo, pullRequest model.PullRequest) (*string, error) {
-	return FromContext(c).MergePR(u, r, pullRequest)
+func MergePR(c context.Context, u *model.User, r *model.Repo, pullRequest model.PullRequest, approvers []*model.Person) (*string, error) {
+	return FromContext(c).MergePR(u, r, pullRequest, approvers)
 }
 
 func ListTags(c context.Context, u *model.User, r *model.Repo) ([]model.Tag, error) {
