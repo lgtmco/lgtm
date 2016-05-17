@@ -427,35 +427,41 @@ func (g *Github) GetPullRequestsForCommit(u *model.User, r *model.Repo, sha *str
 			return nil, err
 		}
 
-		if *pr.Head.SHA != *sha {
-			log.Debug("Pull Request %s has sha %s at head, not sha %s, so not a pull request for this commit", *pr.Title, *pr.Head.SHA, *sha)
-			continue
-		}
+		log.Debug("current issue ==", v)
+		log.Debug("current pr ==", *pr)
+
+		/*
+		for each pull request that contains this commit, get all the commits for this pull request
+		and get all the status checks for all of the commits.
+		 If all of the status checks across all the commits are good, then we can merge. Otherwise,
+		 we can't.
+		 */
 		mergeable := true
 		if pr.Mergeable != nil {
 			mergeable = *pr.Mergeable
 		}
 
-		status, _, err := client.Repositories.GetCombinedStatus(r.Owner, r.Name, *sha, nil)
+		commits, _, err := client.PullRequests.ListCommits(r.Owner, r.Name, *v.Number, nil)
 		if err != nil {
 			return nil, err
 		}
-
-		log.Debug("current issue ==", v)
-		log.Debug("current pr ==", *pr)
-		log.Debug("combined status ==", *status)
-
-		combinedState := *status.State
-		if combinedState == "success" {
-			log.Debug("overall status is success -- checking to see if all status checks returned success")
-			for _, v := range status.Statuses {
-				log.Debugf("status check %s returned %s", *v.Context, *v.State)
-				if *v.State != "success" {
-					log.Debugf("setting combined status check to %s", *v.State)
-					combinedState = *v.State
-				}
+		combinedState := "success"
+		for _, v := range commits {
+			log.Debug("current commit == ", v)
+			status, _, err := client.Repositories.GetCombinedStatus(r.Owner, r.Name, *v.SHA, nil)
+			if err != nil {
+				return nil, err
 			}
+			log.Debug("current status == ", *status.State)
+			if *status.State != "success" {
+				combinedState = *status.State
+				break
+			}
+
 		}
+
+		log.Debug("combined status ==", combinedState)
+
 		out = append(out, model.PullRequest{
 			Issue: model.Issue{
 				Number: *v.Number,
