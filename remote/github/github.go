@@ -426,6 +426,10 @@ func (g *Github) GetPushHook(r *http.Request) (*model.PushHook, error) {
 
 	log.Debug(data)
 
+	if data.HeadCommit == nil {
+		return nil, nil
+	}
+
 	hook := new(model.PushHook)
 
 	hook.SHA = data.HeadCommit.ID

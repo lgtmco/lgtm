@@ -64,7 +64,7 @@ type prHook struct {
 }
 
 type pushHook struct {
-	HeadCommit struct {
+	HeadCommit *struct {
 			ID string `json:"id"`
 		   }  `json:"head_commit"`
 
