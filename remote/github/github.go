@@ -420,13 +420,17 @@ func (g *Github) GetPullRequestsForCommit(u *model.User, r *model.Repo, sha *str
 	if err != nil {
 		return nil, err
 	}
-	out := make([]model.PullRequest, len(issues.Issues))
-	for k, v := range issues.Issues {
+	out := []model.PullRequest{}
+	for _, v := range issues.Issues {
 		pr, _, err := client.PullRequests.Get(r.Owner, r.Name, *v.Number)
 		if err != nil {
 			return nil, err
 		}
 
+		if *pr.Head.SHA != *sha {
+			log.Debug("Pull Request %s has sha %s at head, not sha %s, so not a pull request for this commit", *pr.Title, *pr.Head.SHA, *sha)
+			continue
+		}
 		mergeable := true
 		if pr.Mergeable != nil {
 			mergeable = *pr.Mergeable
@@ -452,7 +456,7 @@ func (g *Github) GetPullRequestsForCommit(u *model.User, r *model.Repo, sha *str
 				}
 			}
 		}
-		out[k] = model.PullRequest{
+		out = append(out, model.PullRequest{
 			Issue: model.Issue{
 				Number: *v.Number,
 				Title: *v.Title,
@@ -464,7 +468,7 @@ func (g *Github) GetPullRequestsForCommit(u *model.User, r *model.Repo, sha *str
 				Mergeable: mergeable,
 
 			},
-		}
+		})
 	}
 	return out, nil
 }
