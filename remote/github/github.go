@@ -428,7 +428,7 @@ func (g *Github) GetPushHook(r *http.Request) (*model.PushHook, error) {
 
 	hook := new(model.PushHook)
 
-	hook.SHA = data.Head
+	hook.SHA = data.HeadCommit.ID
 	hook.Repo = new(model.Repo)
 	hook.Repo.Owner = data.Repository.Owner.Login
 	hook.Repo.Name = data.Repository.Name
