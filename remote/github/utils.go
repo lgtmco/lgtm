@@ -64,7 +64,7 @@ func DeleteHook(client *github.Client, owner, name, url string) error {
 func CreateHook(client *github.Client, owner, name, url string) (*github.Hook, error) {
 	var hook = new(github.Hook)
 	hook.Name = github.String("web")
-	hook.Events = []string{"issue_comment", "status", "pull_request"}
+	hook.Events = []string{"issue_comment", "status", "pull_request", "push"}
 	hook.Config = map[string]interface{}{}
 	hook.Config["url"] = url
 	hook.Config["content_type"] = "json"

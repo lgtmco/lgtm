@@ -20,3 +20,8 @@ type PRHook struct {
 	Number int
 	Repo    *Repo
 }
+
+type PushHook struct {
+	SHA string
+	Repo *Repo
+}
