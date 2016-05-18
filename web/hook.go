@@ -118,7 +118,7 @@ func getConfigAndMaintainers(c *gin.Context, user *model.User, repo *model.Repo)
 }
 
 func getComments(c *gin.Context, user *model.User, repo *model.Repo, num int) ([]*model.Comment, error) {
-	comments, err := remote.GetComments(c, user, repo, num)
+	comments, err := remote.GetCommentsSinceHead(c, user, repo, num)
 	if err != nil {
 		log.Errorf("Error retrieving comments for %s pr %d. %s", repo.Slug, num, err)
 		c.String(500, "Error retrieving comments. %s.", err)

@@ -41,6 +41,9 @@ type Remote interface {
 	// GetComments gets pull request comments from the remote system.
 	GetComments(*model.User, *model.Repo, int) ([]*model.Comment, error)
 
+	// GetComments gets pull request comments from the remote system since the head commit was committed.
+	GetCommentsSinceHead(*model.User, *model.Repo, int) ([]*model.Comment, error)
+
 	// GetContents gets the file contents from the remote system.
 	GetContents(*model.User, *model.Repo, string) ([]byte, error)
 
@@ -117,6 +120,11 @@ func GetRepos(c context.Context, u *model.User) ([]*model.Repo, error) {
 // GetComments gets pull request comments from the remote system.
 func GetComments(c context.Context, u *model.User, r *model.Repo, num int) ([]*model.Comment, error) {
 	return FromContext(c).GetComments(u, r, num)
+}
+
+// GetCommentsSinceHead gets pull request comments from the remote system since the head commit was committed
+func GetCommentsSinceHead(c context.Context, u *model.User, r *model.Repo, num int) ([]*model.Comment, error) {
+	return FromContext(c).GetCommentsSinceHead(u, r, num)
 }
 
 // GetContents gets the file contents from the remote system.

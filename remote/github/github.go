@@ -280,6 +280,34 @@ func (g *Github) GetComments(u *model.User, r *model.Repo, num int) ([]*model.Co
 	return comments, nil
 }
 
+func (g *Github) GetCommentsSinceHead(u *model.User, r *model.Repo, num int) ([]*model.Comment, error) {
+	client := setupClient(g.API, u.Token)
+
+	pr, _, err := client.PullRequests.Get(r.Owner, r.Name, num)
+	if err != nil {
+		return nil, err
+	}
+
+	commit, _, err := client.Repositories.GetCommit(r.Owner, r.Name, *pr.Head.SHA)
+	if err != nil {
+		return nil, err
+	}
+	opts := github.IssueListCommentsOptions{Direction: "desc", Sort: "created", Since: *commit.Commit.Committer.Date}
+	opts.PerPage = 100
+	comments_, _, err := client.Issues.ListComments(r.Owner, r.Name, num, &opts)
+	if err != nil {
+		return nil, err
+	}
+	comments := []*model.Comment{}
+	for _, comment := range comments_ {
+		comments = append(comments, &model.Comment{
+			Author: *comment.User.Login,
+			Body:   *comment.Body,
+		})
+	}
+	return comments, nil
+}
+
 func (g *Github) GetContents(u *model.User, r *model.Repo, path string) ([]byte, error) {
 	client := setupClient(g.API, u.Token)
 	content, _, _, err := client.Repositories.GetContents(r.Owner, r.Name, path, nil)
