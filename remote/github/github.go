@@ -394,7 +394,7 @@ func (g *Github) GetPRHook(r *http.Request) (*model.PRHook, error) {
 
 	log.Debug(data)
 
-	if data.Action != "opened" && data.Action != "synchronized" {
+	if data.Action != "opened" && data.Action != "synchronize" {
 		return nil, nil
 	}
 
