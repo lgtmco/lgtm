@@ -41,17 +41,7 @@ func Hook(c *gin.Context) {
 		return
 	}
 
-	pushHook, err := remote.GetPushHook(c, c.Request)
-	if err != nil {
-		log.Errorf("Error parsing push hook. %s", err)
-		c.String(500, "Error parsing push hook. %s", err)
-		return
-	}
-	if pushHook != nil {
-		processPushHook(c, pushHook)
-	}
-
-	if hook == nil && statusHook == nil && prHook == nil && pushHook == nil {
+	if hook == nil && statusHook == nil && prHook == nil {
 		c.String(200, "pong")
 		return
 	}
