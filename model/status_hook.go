@@ -1,8 +1,8 @@
 package model
 
 type StatusHook struct {
-	SHA string
-	Repo    *Repo
+	SHA  string
+	Repo *Repo
 }
 
 type PullRequest struct {
@@ -19,10 +19,10 @@ type Branch struct {
 type PRHook struct {
 	Number int
 	Update bool
-	Repo    *Repo
+	Repo   *Repo
 }
 
 type PushHook struct {
-	SHA string
+	SHA  string
 	Repo *Repo
 }

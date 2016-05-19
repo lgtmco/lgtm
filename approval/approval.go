@@ -1,11 +1,11 @@
 package approval
 
 import (
+	"fmt"
+	log "github.com/Sirupsen/logrus"
 	"github.com/lgtmco/lgtm/model"
 	"regexp"
 	"strings"
-	"fmt"
-	log "github.com/Sirupsen/logrus"
 )
 
 // Func takes in the information needed to figure out which approvers were in the PR comments
@@ -19,13 +19,13 @@ func Register(name string, f Func) error {
 		return fmt.Errorf("Approval Algorithm %s is already registered.", name)
 	}
 	approvalMap[strings.ToLower(name)] = f
-	log.Debug("added to approvalMap:",name,f)
+	log.Debug("added to approvalMap:", name, f)
 	return nil
 }
 
 func Lookup(name string) (Func, error) {
-	log.Debug("approvalMap has",approvalMap)
-	log.Debugf("looking for '%s'\n",name)
+	log.Debug("approvalMap has", approvalMap)
+	log.Debugf("looking for '%s'\n", name)
 	f, ok := approvalMap[strings.ToLower(name)]
 	if !ok {
 		return nil, fmt.Errorf("Unknown Approval Algorithm %s", name)

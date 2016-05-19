@@ -1,9 +1,9 @@
 package org
 
 import (
-	"regexp"
-	"github.com/lgtmco/lgtm/model"
 	"github.com/lgtmco/lgtm/approval"
+	"github.com/lgtmco/lgtm/model"
+	"regexp"
 )
 
 func init() {

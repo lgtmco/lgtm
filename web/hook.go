@@ -1,11 +1,11 @@
 package web
 
 import (
+	log "github.com/Sirupsen/logrus"
+	"github.com/gin-gonic/gin"
 	"github.com/lgtmco/lgtm/cache"
 	"github.com/lgtmco/lgtm/model"
 	"github.com/lgtmco/lgtm/remote"
-	log "github.com/Sirupsen/logrus"
-	"github.com/gin-gonic/gin"
 	"github.com/lgtmco/lgtm/store"
 )
 
@@ -26,7 +26,7 @@ func Hook(c *gin.Context) {
 		c.String(500, "Error parsing status hook. %s", err)
 		return
 	}
-	if statusHook !=  nil {
+	if statusHook != nil {
 		processStatusHook(c, statusHook)
 	}
 
@@ -76,11 +76,11 @@ func processPRHook(c *gin.Context, prHook *model.PRHook) {
 
 	c.IndentedJSON(200, gin.H{
 		"number":   prHook.Number,
-		"approved":    false,
+		"approved": false,
 	})
 }
 
-func getRepoAndUser(c *gin.Context, slug string) (*model.Repo, *model.User, error){
+func getRepoAndUser(c *gin.Context, slug string) (*model.Repo, *model.User, error) {
 	repo, err := store.GetRepoSlug(c, slug)
 	if err != nil {
 		log.Errorf("Error getting repository %s. %s", slug, err)
@@ -141,4 +141,3 @@ func getComments(c *gin.Context, user *model.User, repo *model.Repo, num int) ([
 	}
 	return comments, nil
 }
-

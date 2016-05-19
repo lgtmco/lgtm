@@ -42,15 +42,15 @@ type commentHook struct {
 }
 
 type statusHook struct {
-	SHA string `json:"sha"`
+	SHA   string `json:"sha"`
 	State string `json:"state"`
 
 	Branches []struct {
-		Name string `json:"name"`
+		Name   string `json:"name"`
 		Commit struct {
 			SHA string `json:"sha"`
 			URL string `json:"url"`
-		       } `json:"commit"`
+		} `json:"commit"`
 	} `json:"branches"`
 
 	Repository Repository `json:"repository"`
@@ -58,27 +58,27 @@ type statusHook struct {
 
 type prHook struct {
 	Action string `json:"action"`
-	Number int `json:"number"`
+	Number int    `json:"number"`
 
 	Repository Repository `json:"repository"`
 }
 
 type pushHook struct {
 	HeadCommit *struct {
-			ID string `json:"id"`
-		   }  `json:"head_commit"`
+		ID string `json:"id"`
+	} `json:"head_commit"`
 
 	Repository Repository `json:"repository"`
 }
 
-type 	Repository struct {
+type Repository struct {
 	Name     string `json:"name"`
 	FullName string `json:"full_name"`
 	Desc     string `json:"description"`
 	Private  bool   `json:"private"`
 	Owner    struct {
-			 Login  string `json:"login"`
-			 Type   string `json:"type"`
-			 Avatar string `json:"avatar_url"`
-		 } `json:"owner"`
+		Login  string `json:"login"`
+		Type   string `json:"type"`
+		Avatar string `json:"avatar_url"`
+	} `json:"owner"`
 }

@@ -154,7 +154,7 @@ func handleSemver(c *gin.Context, user *model.User, hook *model.StatusHook, pr m
 		maxVer = foundVersion
 	} else {
 		maxParts := maxVer.Segments()
-		maxVer, _ = version.NewVersion(fmt.Sprintf("%d.%d.%d", maxParts[0], maxParts[1], maxParts[2] + 1))
+		maxVer, _ = version.NewVersion(fmt.Sprintf("%d.%d.%d", maxParts[0], maxParts[1], maxParts[2]+1))
 	}
 
 	verStr := maxVer.String()
@@ -187,7 +187,7 @@ func getMaxExistingTag(tags []model.Tag) *version.Version {
 // the function returns version 0.0.0. If there's a bug in the version pattern,
 // nil will be returned.
 func getMaxVersionComment(config *model.Config, maintainer *model.Maintainer,
-issue model.Issue, comments []*model.Comment, matcher approval.Func) *version.Version {
+	issue model.Issue, comments []*model.Comment, matcher approval.Func) *version.Version {
 	maxVersion, _ := version.NewVersion("0.0.0")
 	ma, err := regexp.Compile(config.Pattern)
 	if err != nil {
