@@ -37,7 +37,7 @@ func ParseConfigStr(data string) (*Config, error) {
 		c.Approvals = 2
 	}
 	if len(c.Pattern) == 0 {
-		c.Pattern = `(?i)LGTM\s*(\S*)`
+		c.Pattern = `(?i)^LGTM\s*(\S*)`
 	}
 	if len(c.Team) == 0 {
 		c.Team = "MAINTAINERS"
