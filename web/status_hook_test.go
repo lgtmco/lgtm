@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"github.com/gin-gonic/gin"
 	"github.com/hashicorp/go-version"
+	"github.com/lgtmco/lgtm/approval"
 	"github.com/lgtmco/lgtm/model"
 	"github.com/lgtmco/lgtm/remote"
 	"math"
@@ -12,7 +13,6 @@ import (
 	"strconv"
 	"testing"
 	"time"
-	"github.com/lgtmco/lgtm/approval"
 )
 
 func TestHandleTimestampMillis(t *testing.T) {
@@ -28,7 +28,7 @@ func TestHandleTimestampMillis(t *testing.T) {
 	if err != nil {
 		t.Error(err)
 	}
-	if math.Abs(float64(m - m1)) > 100 {
+	if math.Abs(float64(m-m1)) > 100 {
 		t.Errorf("shouldn't be that different: %d, %d", m, m1)
 	}
 }
@@ -350,8 +350,8 @@ func TestHandleSemver(t *testing.T) {
 
 	remote.ToContext(c, &myR{})
 	config := &model.Config{
-		DoVersion: true,
-		Pattern:   `(?i)LGTM\s*(\S*)`,
+		DoVersion:   true,
+		Pattern:     `(?i)LGTM\s*(\S*)`,
 		ApprovalAlg: "simple",
 	}
 	m := &model.Maintainer{
@@ -436,8 +436,8 @@ func TestHandleSemver2(t *testing.T) {
 
 	remote.ToContext(c, &myR2{})
 	config := &model.Config{
-		DoVersion: true,
-		Pattern:   `(?i)LGTM\s*(\S*)`,
+		DoVersion:   true,
+		Pattern:     `(?i)LGTM\s*(\S*)`,
 		ApprovalAlg: "simple",
 	}
 	m := &model.Maintainer{
@@ -518,8 +518,8 @@ func TestHandleSemver3(t *testing.T) {
 
 	remote.ToContext(c, &myR3{})
 	config := &model.Config{
-		DoVersion: true,
-		Pattern:   `(?i)LGTM\s*(\S*)`,
+		DoVersion:   true,
+		Pattern:     `(?i)LGTM\s*(\S*)`,
 		ApprovalAlg: "simple",
 	}
 	m := &model.Maintainer{
@@ -593,8 +593,8 @@ func TestHandleSemver4(t *testing.T) {
 
 	remote.ToContext(c, &myR4{})
 	config := &model.Config{
-		DoVersion: true,
-		Pattern:   `(?i)LGTM\s*(\S*)`,
+		DoVersion:   true,
+		Pattern:     `(?i)LGTM\s*(\S*)`,
 		ApprovalAlg: "simple",
 	}
 	m := &model.Maintainer{

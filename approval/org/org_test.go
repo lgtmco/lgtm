@@ -1,8 +1,8 @@
 package org
 
 import (
-	"testing"
 	"github.com/lgtmco/lgtm/model"
+	"testing"
 )
 
 var maintainerToml = `
@@ -34,8 +34,8 @@ people = [
 `
 
 func TestOrg(t *testing.T) {
-	config := &model.Config {
-		Pattern: `(?i)LGTM\s*(\S*)`,
+	config := &model.Config{
+		Pattern:         `(?i)LGTM\s*(\S*)`,
 		SelfApprovalOff: true,
 	}
 	m, err := model.ParseMaintainerStr(maintainerToml)
@@ -45,25 +45,25 @@ func TestOrg(t *testing.T) {
 	issue := &model.Issue{
 		Author: "jon",
 	}
-	comments := []*model.Comment {
+	comments := []*model.Comment{
 		{
-			Body: "lgtm",
+			Body:   "lgtm",
 			Author: "bob",
 		},
 		{
-			Body: "lgtm",
+			Body:   "lgtm",
 			Author: "qwerty",
 		},
 		{
-			Body: "not an approval",
+			Body:   "not an approval",
 			Author: "ralph",
 		},
 		{
-			Body: "lgtm",
+			Body:   "lgtm",
 			Author: "george",
 		},
 		{
-			Body: "lgtm",
+			Body:   "lgtm",
 			Author: "ralph",
 		},
 	}

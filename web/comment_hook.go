@@ -1,11 +1,11 @@
 package web
 
 import (
-	"github.com/gin-gonic/gin"
 	log "github.com/Sirupsen/logrus"
+	"github.com/gin-gonic/gin"
+	"github.com/lgtmco/lgtm/approval"
 	"github.com/lgtmco/lgtm/model"
 	"github.com/lgtmco/lgtm/remote"
-	"github.com/lgtmco/lgtm/approval"
 )
 
 func processCommentHook(c *gin.Context, hook *model.Hook) {
