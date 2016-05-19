@@ -429,6 +429,7 @@ func (g *Github) GetPRHook(r *http.Request) (*model.PRHook, error) {
 	hook := new(model.PRHook)
 
 	hook.Number = data.Number
+	hook.Update = (data.Action == "synchronize")
 	hook.Repo = new(model.Repo)
 	hook.Repo.Owner = data.Repository.Owner.Login
 	hook.Repo.Name = data.Repository.Name
@@ -648,4 +649,17 @@ func (g *Github) Tag(u *model.User, r *model.Repo, version *string, sha *string)
 	})
 
 	return err
+}
+
+
+func (g *Github) WriteComment(u *model.User, r *model.Repo, num int, message string) error {
+	client := setupClient(g.API, u.Token)
+	emsg := "Message from LGTM -- " + message
+	_, _, err := client.Issues.CreateComment(r.Owner, r.Name, num, &github.IssueComment{
+		Body: github.String(emsg),
+	})
+	if err != nil {
+		return err
+	}
+	return nil
 }

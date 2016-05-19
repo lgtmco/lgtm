@@ -52,11 +52,26 @@ func processPRHook(c *gin.Context, prHook *model.PRHook) {
 	if err != nil {
 		return
 	}
+
 	err = remote.SetStatus(c, user, repo, prHook.Number, false)
 	if err != nil {
 		log.Errorf("Error setting status. %s", err)
 		c.String(500, "Error setting status. %s", err)
 		return
+	}
+
+	config, _, err := getConfigAndMaintainers(c, user, repo)
+	if err != nil {
+		return
+	}
+
+	if prHook.Update && config.DoComment {
+		err = remote.WriteComment(c, user, repo, prHook.Number, "The Pull Request has been updated. No comments before this one will count for approval.")
+		if err != nil {
+			log.Errorf("Error writing comment for status. %s", err)
+			c.String(500, "Error writing comment for status. %s", err)
+			return
+		}
 	}
 
 	c.IndentedJSON(200, gin.H{

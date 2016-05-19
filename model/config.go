@@ -11,13 +11,14 @@ type Config struct {
 	Pattern         string `json:"pattern"           toml:"pattern"`
 	Team            string `json:"team"              toml:"team"`
 	SelfApprovalOff bool   `json:"self_approval_off" toml:"self_approval_off"`
-	DoMerge         bool `json:"do_merge" toml:"do_merge"`
-	DoVersion       bool `json:"do_version" toml:"do_version"`
+	DoMerge         bool   `json:"do_merge" toml:"do_merge"`
+	DoVersion       bool   `json:"do_version" toml:"do_version"`
 	ApprovalAlg     string `json:"approval_algorithm" toml:"approval_algorithm"`
 	VersionAlg      string `json:"version_algorithm" toml:"version_algorithm"`
-	VersionFormat string `json:"version_format" toml:"version_format"`
+	VersionFormat   string `json:"version_format" toml:"version_format"`
+	DoComment       bool   `json:"do_comment" toml:"do_comment"`
 
-	re              *regexp.Regexp
+	re *regexp.Regexp
 }
 
 // ParseConfig parses a projects .lgtm file

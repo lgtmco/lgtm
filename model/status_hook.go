@@ -18,6 +18,7 @@ type Branch struct {
 
 type PRHook struct {
 	Number int
+	Update bool
 	Repo    *Repo
 }
 
