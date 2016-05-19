@@ -79,6 +79,9 @@ type Remote interface {
 
 	// UpdatePRsForCommit sets the commit's status to pending for LGTM if it is already on an open Pull Request
 	UpdatePRsForCommit(u *model.User, r *model.Repo, sha *string) (bool, error)
+
+	// WriteComment puts a new comment from LGTM into the PR
+	WriteComment(u *model.User, r *model.Repo, num int, message string) error
 }
 
 // GetUser authenticates a user with the remote system.
@@ -191,4 +194,8 @@ func GetPullRequestsForCommit(c context.Context, u *model.User, r *model.Repo, s
 
 func UpdatePRsForCommit(c context.Context, u *model.User, r *model.Repo, sha *string) (bool, error) {
 	return FromContext(c).UpdatePRsForCommit(u, r, sha)
+}
+
+func WriteComment(c context.Context, u *model.User, r *model.Repo, num int, message string) error {
+	return FromContext(c).WriteComment(u, r, num, message)
 }
