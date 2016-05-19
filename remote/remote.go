@@ -41,6 +41,9 @@ type Remote interface {
 	// GetComments gets pull request comments from the remote system.
 	GetComments(*model.User, *model.Repo, int) ([]*model.Comment, error)
 
+	// GetComments gets pull request comments from the remote system since the head commit was committed.
+	GetCommentsSinceHead(*model.User, *model.Repo, int) ([]*model.Comment, error)
+
 	// GetContents gets the file contents from the remote system.
 	GetContents(*model.User, *model.Repo, string) ([]byte, error)
 
@@ -56,6 +59,9 @@ type Remote interface {
 	// GetPRHook gets the pull request hook from the http Request.
 	GetPRHook(r *http.Request) (*model.PRHook, error)
 
+	// GetPushHook gets the push hook from the http Request.
+	GetPushHook(r *http.Request) (*model.PushHook, error)
+
 	// GetBranchStatus returns overall status for the named branch from the remote system
 	GetBranchStatus(*model.User, *model.Repo, string) (*model.BranchStatus, error)
 
@@ -70,6 +76,9 @@ type Remote interface {
 
 	// GetPullRequestsForCommit returns all pull requests associated with a commit SHA
 	GetPullRequestsForCommit(u *model.User, r *model.Repo, sha *string) ([]model.PullRequest, error)
+
+	// UpdatePRsForCommit sets the commit's status to pending for LGTM if it is already on an open Pull Request
+	UpdatePRsForCommit(u *model.User, r *model.Repo, sha *string) (bool, error)
 }
 
 // GetUser authenticates a user with the remote system.
@@ -113,6 +122,11 @@ func GetComments(c context.Context, u *model.User, r *model.Repo, num int) ([]*m
 	return FromContext(c).GetComments(u, r, num)
 }
 
+// GetCommentsSinceHead gets pull request comments from the remote system since the head commit was committed
+func GetCommentsSinceHead(c context.Context, u *model.User, r *model.Repo, num int) ([]*model.Comment, error) {
+	return FromContext(c).GetCommentsSinceHead(u, r, num)
+}
+
 // GetContents gets the file contents from the remote system.
 func GetContents(c context.Context, u *model.User, r *model.Repo, path string) ([]byte, error) {
 	return FromContext(c).GetContents(u, r, path)
@@ -148,6 +162,11 @@ func GetPRHook(c context.Context, r *http.Request) (*model.PRHook, error) {
 	return FromContext(c).GetPRHook(r)
 }
 
+// GetPushHook gets the push hook from the http Request.
+func GetPushHook(c context.Context, r *http.Request) (*model.PushHook, error) {
+	return FromContext(c).GetPushHook(r)
+}
+
 // GetBranchStatus gets the overal status for a branch from the remote repository.
 func GetBranchStatus(c context.Context, u *model.User, r *model.Repo, branch string) (*model.BranchStatus, error) {
 	return FromContext(c).GetBranchStatus(u, r, branch)
@@ -168,4 +187,8 @@ func Tag(c context.Context, u *model.User, r *model.Repo, version *string, sha *
 func GetPullRequestsForCommit(c context.Context, u *model.User, r *model.Repo, sha *string) ([]model.PullRequest, error) {
 	return FromContext(c).GetPullRequestsForCommit(u, r, sha)
 
+}
+
+func UpdatePRsForCommit(c context.Context, u *model.User, r *model.Repo, sha *string) (bool, error) {
+	return FromContext(c).UpdatePRsForCommit(u, r, sha)
 }

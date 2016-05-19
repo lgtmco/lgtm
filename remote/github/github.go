@@ -280,6 +280,34 @@ func (g *Github) GetComments(u *model.User, r *model.Repo, num int) ([]*model.Co
 	return comments, nil
 }
 
+func (g *Github) GetCommentsSinceHead(u *model.User, r *model.Repo, num int) ([]*model.Comment, error) {
+	client := setupClient(g.API, u.Token)
+
+	pr, _, err := client.PullRequests.Get(r.Owner, r.Name, num)
+	if err != nil {
+		return nil, err
+	}
+
+	commit, _, err := client.Repositories.GetCommit(r.Owner, r.Name, *pr.Head.SHA)
+	if err != nil {
+		return nil, err
+	}
+	opts := github.IssueListCommentsOptions{Direction: "desc", Sort: "created", Since: *commit.Commit.Committer.Date}
+	opts.PerPage = 100
+	comments_, _, err := client.Issues.ListComments(r.Owner, r.Name, num, &opts)
+	if err != nil {
+		return nil, err
+	}
+	comments := []*model.Comment{}
+	for _, comment := range comments_ {
+		comments = append(comments, &model.Comment{
+			Author: *comment.User.Login,
+			Body:   *comment.Body,
+		})
+	}
+	return comments, nil
+}
+
 func (g *Github) GetContents(u *model.User, r *model.Repo, path string) ([]byte, error) {
 	client := setupClient(g.API, u.Token)
 	content, _, _, err := client.Repositories.GetContents(r.Owner, r.Name, path, nil)
@@ -394,7 +422,7 @@ func (g *Github) GetPRHook(r *http.Request) (*model.PRHook, error) {
 
 	log.Debug(data)
 
-	if data.Action != "opened" {
+	if data.Action != "opened" && data.Action != "synchronize" {
 		return nil, nil
 	}
 
@@ -411,22 +439,88 @@ func (g *Github) GetPRHook(r *http.Request) (*model.PRHook, error) {
 	return hook, nil
 }
 
+func (g *Github) GetPushHook(r *http.Request) (*model.PushHook, error) {
+
+	// only process comment hooks
+	if r.Header.Get("X-Github-Event") != "push" {
+		return nil, nil
+	}
+
+	data := pushHook{}
+	err := json.NewDecoder(r.Body).Decode(&data)
+	if err != nil {
+		return nil, err
+	}
+
+	log.Debug(data)
+
+	if data.HeadCommit == nil {
+		return nil, nil
+	}
+
+	hook := new(model.PushHook)
+
+	hook.SHA = data.HeadCommit.ID
+	hook.Repo = new(model.Repo)
+	hook.Repo.Owner = data.Repository.Owner.Login
+	hook.Repo.Name = data.Repository.Name
+	hook.Repo.Slug = data.Repository.FullName
+
+	log.Debug(*hook)
+
+	return hook, nil
+}
+
+func (g *Github) UpdatePRsForCommit(u *model.User, r *model.Repo, sha *string) (bool, error) {
+	//if we have a new commit on an existing open PR, then we need to put a new pending LGTM status on it
+	//if the commit is not associated with an open PR, then we don't do any status update
+	client := setupClient(g.API, u.Token)
+	log.Debug("sha == ", *sha)
+	issues, _, err := client.Search.Issues(fmt.Sprintf("%s&type=pr", *sha), &github.SearchOptions{
+		TextMatch: false,
+	})
+	if err != nil {
+		return false, err
+	}
+	if issues.Total != nil && *issues.Total > 0 {
+		status := "pending"
+		desc := "this commit is pending approval"
+
+		data := github.RepoStatus{
+			Context:     github.String(context),
+			State:       github.String(status),
+			Description: github.String(desc),
+		}
+
+		_, _, err = client.Repositories.CreateStatus(r.Owner, r.Name, *sha, &data)
+		return true, err
+	}
+	return false, nil
+}
+
 func (g *Github) GetPullRequestsForCommit(u *model.User, r *model.Repo, sha *string) ([]model.PullRequest, error) {
 	client := setupClient(g.API, u.Token)
-	log.Debug("sha == ", sha, *sha)
+	log.Debug("sha == ", *sha)
 	issues, _, err := client.Search.Issues(fmt.Sprintf("%s&type=pr", *sha), &github.SearchOptions{
 		TextMatch: false,
 	})
 	if err != nil {
 		return nil, err
 	}
-	out := make([]model.PullRequest, len(issues.Issues))
-	for k, v := range issues.Issues {
+	out := []model.PullRequest{}
+	for _, v := range issues.Issues {
 		pr, _, err := client.PullRequests.Get(r.Owner, r.Name, *v.Number)
 		if err != nil {
 			return nil, err
 		}
 
+		log.Debug("current issue ==", v)
+		log.Debug("current pr ==", *pr)
+
+		if *pr.Head.SHA != *sha {
+			log.Debugf("Pull Request %s has sha %s at head, not sha %s, so not a pull request for this commit", *pr.Title, *pr.Head.SHA, *sha)
+			continue
+		}
 		mergeable := true
 		if pr.Mergeable != nil {
 			mergeable = *pr.Mergeable
@@ -437,8 +531,6 @@ func (g *Github) GetPullRequestsForCommit(u *model.User, r *model.Repo, sha *str
 			return nil, err
 		}
 
-		log.Debug("current issue ==", v)
-		log.Debug("current pr ==", *pr)
 		log.Debug("combined status ==", *status)
 
 		combinedState := *status.State
@@ -452,7 +544,8 @@ func (g *Github) GetPullRequestsForCommit(u *model.User, r *model.Repo, sha *str
 				}
 			}
 		}
-		out[k] = model.PullRequest{
+
+		out = append(out, model.PullRequest{
 			Issue: model.Issue{
 				Number: *v.Number,
 				Title: *v.Title,
@@ -464,7 +557,7 @@ func (g *Github) GetPullRequestsForCommit(u *model.User, r *model.Repo, sha *str
 				Mergeable: mergeable,
 
 			},
-		}
+		})
 	}
 	return out, nil
 }

@@ -40,6 +40,7 @@ func Hook(c *gin.Context) {
 		c.String(500, "Error parsing pull request hook. %s", err)
 		return
 	}
+
 	if hook == nil && statusHook == nil && prHook == nil {
 		c.String(200, "pong")
 		return
@@ -51,7 +52,13 @@ func processPRHook(c *gin.Context, prHook *model.PRHook) {
 	if err != nil {
 		return
 	}
-	remote.SetStatus(c, user, repo, prHook.Number, false)
+	err = remote.SetStatus(c, user, repo, prHook.Number, false)
+	if err != nil {
+		log.Errorf("Error setting status. %s", err)
+		c.String(500, "Error setting status. %s", err)
+		return
+	}
+
 	c.IndentedJSON(200, gin.H{
 		"number":   prHook.Number,
 		"approved":    false,
@@ -111,7 +118,7 @@ func getConfigAndMaintainers(c *gin.Context, user *model.User, repo *model.Repo)
 }
 
 func getComments(c *gin.Context, user *model.User, repo *model.Repo, num int) ([]*model.Comment, error) {
-	comments, err := remote.GetComments(c, user, repo, num)
+	comments, err := remote.GetCommentsSinceHead(c, user, repo, num)
 	if err != nil {
 		log.Errorf("Error retrieving comments for %s pr %d. %s", repo.Slug, num, err)
 		c.String(500, "Error retrieving comments. %s.", err)
