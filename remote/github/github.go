@@ -440,65 +440,6 @@ func (g *Github) GetPRHook(r *http.Request) (*model.PRHook, error) {
 	return hook, nil
 }
 
-func (g *Github) GetPushHook(r *http.Request) (*model.PushHook, error) {
-
-	// only process comment hooks
-	if r.Header.Get("X-Github-Event") != "push" {
-		return nil, nil
-	}
-
-	data := pushHook{}
-	err := json.NewDecoder(r.Body).Decode(&data)
-	if err != nil {
-		return nil, err
-	}
-
-	log.Debug(data)
-
-	if data.HeadCommit == nil {
-		return nil, nil
-	}
-
-	hook := new(model.PushHook)
-
-	hook.SHA = data.HeadCommit.ID
-	hook.Repo = new(model.Repo)
-	hook.Repo.Owner = data.Repository.Owner.Login
-	hook.Repo.Name = data.Repository.Name
-	hook.Repo.Slug = data.Repository.FullName
-
-	log.Debug(*hook)
-
-	return hook, nil
-}
-
-func (g *Github) UpdatePRsForCommit(u *model.User, r *model.Repo, sha *string) (bool, error) {
-	//if we have a new commit on an existing open PR, then we need to put a new pending LGTM status on it
-	//if the commit is not associated with an open PR, then we don't do any status update
-	client := setupClient(g.API, u.Token)
-	log.Debug("sha == ", *sha)
-	issues, _, err := client.Search.Issues(fmt.Sprintf("%s&type=pr", *sha), &github.SearchOptions{
-		TextMatch: false,
-	})
-	if err != nil {
-		return false, err
-	}
-	if issues.Total != nil && *issues.Total > 0 {
-		status := "pending"
-		desc := "this commit is pending approval"
-
-		data := github.RepoStatus{
-			Context:     github.String(context),
-			State:       github.String(status),
-			Description: github.String(desc),
-		}
-
-		_, _, err = client.Repositories.CreateStatus(r.Owner, r.Name, *sha, &data)
-		return true, err
-	}
-	return false, nil
-}
-
 func (g *Github) GetPullRequestsForCommit(u *model.User, r *model.Repo, sha *string) ([]model.PullRequest, error) {
 	client := setupClient(g.API, u.Token)
 	log.Debug("sha == ", *sha)
@@ -560,16 +501,6 @@ func (g *Github) GetPullRequestsForCommit(u *model.User, r *model.Repo, sha *str
 		})
 	}
 	return out, nil
-}
-
-func (g *Github) GetBranchStatus(u *model.User, r *model.Repo, branch string) (*model.BranchStatus, error) {
-	client := setupClient(g.API, u.Token)
-	statuses, _, err := client.Repositories.GetCombinedStatus(r.Owner, r.Name, branch, nil)
-	if err != nil {
-		return nil, err
-	}
-
-	return (*model.BranchStatus)(statuses.State), nil
 }
 
 func (g *Github) MergePR(u *model.User, r *model.Repo, pullRequest model.PullRequest, approvers []*model.Person) (*string, error) {
