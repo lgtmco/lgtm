@@ -61,38 +61,18 @@ func processStatusHook(c *gin.Context, hook *model.StatusHook) {
 				log.Debugf("Merged pull request %s", v.Title)
 			}
 
-			merged[v.Title] = StatusResponse{
+			result := StatusResponse{
 				SHA: sha,
 			}
 
 			if !config.DoVersion {
-				continue
+				doVersion(c, user, repo, config, maintainer, hook, v, &result)
 			}
 
-			var verStr *string
-
-			switch config.VersionAlg {
-			case "timestamp":
-				verStr, err = handleTimestamp(config)
-			case "semver":
-				verStr, err = handleSemver(c, user, hook, v, config, maintainer, repo)
-			default:
-				log.Warnf("Should have had a valid version algorithm configed at this point -- using semver")
-				verStr, err = handleSemver(c, user, hook, v, config, maintainer, repo)
-
+			if config.DoDeployment {
+				doDeployment(c, user, config, hook, v.Branch.BaseName)
 			}
-			if err != nil {
-				log.Warnf("Unable to generate a version tag: %s", err.Error())
-				continue
-			}
-			log.Debugf("Tagging merge from PR with tag: %s", *verStr)
-			err = remote.Tag(c, user, repo, verStr, sha)
-			if err != nil {
-				log.Warnf("Unable to tag merge from PR %s: %s", v.Title, err)
-				continue
-			}
-			result := merged[v.Title]
-			result.Version = verStr
+			merged[v.Title] = result
 		}
 	}
 	log.Debugf("processed status for %s. received %v ", repo.Slug, hook)
@@ -100,6 +80,66 @@ func processStatusHook(c *gin.Context, hook *model.StatusHook) {
 	c.IndentedJSON(200, gin.H{
 		"merged": merged,
 	})
+}
+
+func doDeployment(c *gin.Context, user *model.User, config *model.Config, hook *model.StatusHook, baseName string) error {
+	var err error
+	if dc, ok := config.DeploymentMap[baseName]; ok {
+		//if we are
+		env := ""
+		if dc.Environment != nil {
+			env = *dc.Environment
+		}
+		if len(dc.Tasks) == 0 && env != "" {
+			scheduleDeployment(c, user, hook.Repo, baseName, nil, env)
+		} else {
+			for _, task := range dc.Tasks {
+				scheduleDeployment(c, user, hook.Repo, baseName, &task, env)
+			}
+		}
+	}
+	return err
+}
+
+func scheduleDeployment(c *gin.Context, user *model.User, repo *model.Repo, baseName string, task *string, env string) {
+	di := model.DeploymentInfo{
+		Ref:         baseName,
+		Task:        *task,
+		Environment: env,
+	}
+	err := remote.ScheduleDeployment(c, user, repo, di)
+	if err != nil {
+		log.Warnf("Unable to schedule deployment %v: %s", di, err)
+	}
+}
+
+func doVersion(c *gin.Context, user *model.User, repo *model.Repo, config *model.Config, maintainer *model.Maintainer, hook *model.StatusHook, v model.PullRequest, result *StatusResponse) error {
+	var verStr *string
+
+	var err error
+	switch config.VersionAlg {
+	case "timestamp":
+		verStr, err = handleTimestamp(config)
+	case "semver":
+		verStr, err = handleSemver(c, user, hook, v, config, maintainer, repo)
+	default:
+		log.Warnf("Should have had a valid version algorithm configed at this point -- using semver")
+		verStr, err = handleSemver(c, user, hook, v, config, maintainer, repo)
+
+	}
+	if err != nil {
+		log.Warnf("Unable to generate a version tag: %s", err.Error())
+		return err
+	}
+	log.Debugf("Tagging merge from PR with tag: %s", *verStr)
+	err = remote.Tag(c, user, repo, verStr, result.SHA)
+	if err != nil {
+		log.Warnf("Unable to tag merge from PR %s: %s", v.Title, err)
+		return err
+	}
+	result.Version = verStr
+
+	return nil
 }
 
 const modifiedRFC3339 = "2006-01-02T15.04.05Z"

@@ -98,7 +98,8 @@ func getRepoAndUser(c *gin.Context, slug string) (*model.Repo, *model.User, erro
 
 func getConfigAndMaintainers(c *gin.Context, user *model.User, repo *model.Repo) (*model.Config, *model.Maintainer, error) {
 	rcfile, _ := remote.GetContents(c, user, repo, ".lgtm")
-	config, err := model.ParseConfig(rcfile)
+	deployFile, _ := remote.GetContents(c, user, repo, "DEPLOYMENTS")
+	config, err := model.ParseConfig(rcfile, deployFile)
 	if err != nil {
 		log.Errorf("Error parsing .lgtm file for %s. %s", repo.Slug, err)
 		c.String(500, "Error parsing .lgtm file. %s.", err)

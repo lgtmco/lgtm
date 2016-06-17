@@ -497,6 +497,7 @@ func (g *Github) GetPullRequestsForCommit(u *model.User, r *model.Repo, sha *str
 				Name:         *pr.Head.Ref,
 				BranchStatus: combinedState,
 				Mergeable:    mergeable,
+				BaseName:     *pr.Base.Ref,
 			},
 		})
 	}
@@ -591,4 +592,14 @@ func (g *Github) WriteComment(u *model.User, r *model.Repo, num int, message str
 		return err
 	}
 	return nil
+}
+
+func (g *Github) ScheduleDeployment(u *model.User, r *model.Repo, d model.DeploymentInfo) error {
+	client := setupClient(g.API, u.Token)
+	_, _, err := client.Repositories.CreateDeployment(r.Owner, r.Name, &github.DeploymentRequest{
+		Ref:         github.String(d.Ref),
+		Task:        github.String(d.Task),
+		Environment: github.String(d.Environment),
+	})
+	return err
 }

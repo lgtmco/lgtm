@@ -73,6 +73,8 @@ type Remote interface {
 
 	// WriteComment puts a new comment from LGTM into the PR
 	WriteComment(u *model.User, r *model.Repo, num int, message string) error
+
+	ScheduleDeployment(u *model.User, r *model.Repo, d model.DeploymentInfo) error
 }
 
 // GetUser authenticates a user with the remote system.
@@ -175,4 +177,8 @@ func GetPullRequestsForCommit(c context.Context, u *model.User, r *model.Repo, s
 
 func WriteComment(c context.Context, u *model.User, r *model.Repo, num int, message string) error {
 	return FromContext(c).WriteComment(u, r, num, message)
+}
+
+func ScheduleDeployment(c context.Context, u *model.User, r *model.Repo, d model.DeploymentInfo) error {
+	return FromContext(c).ScheduleDeployment(u, r, d)
 }

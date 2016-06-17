@@ -71,6 +71,16 @@ type pushHook struct {
 	Repository Repository `json:"repository"`
 }
 
+type deploymentHook struct {
+	Deployment struct {
+		SHA         string `json:"sha"`
+		Ref         string `json:"ref"`
+		Task        string `json:"task"`
+		Environment string `json:"environment"`
+	} `json:"deployment"`
+	Repository Repository `json:"repository"`
+}
+
 type Repository struct {
 	Name     string `json:"name"`
 	FullName string `json:"full_name"`
