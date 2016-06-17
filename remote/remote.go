@@ -41,6 +41,9 @@ type Remote interface {
 	// GetComments gets pull request comments from the remote system.
 	GetComments(*model.User, *model.Repo, int) ([]*model.Comment, error)
 
+	// GetComments gets pull request comments from the remote system since the head commit was committed.
+	GetCommentsSinceHead(*model.User, *model.Repo, int) ([]*model.Comment, error)
+
 	// GetContents gets the file contents from the remote system.
 	GetContents(*model.User, *model.Repo, string) ([]byte, error)
 
@@ -49,6 +52,27 @@ type Remote interface {
 
 	// GetHook gets the hook from the http Request.
 	GetHook(r *http.Request) (*model.Hook, error)
+
+	// GetStatusHook gets the status hook from the http Request.
+	GetStatusHook(r *http.Request) (*model.StatusHook, error)
+
+	// GetPRHook gets the pull request hook from the http Request.
+	GetPRHook(r *http.Request) (*model.PRHook, error)
+
+	// MergePR merges the named pull request from the remote system
+	MergePR(u *model.User, r *model.Repo, pullRequest model.PullRequest, approvers []*model.Person) (*string, error)
+
+	// GetMaxExistingTag finds the highest version across all tags
+	ListTags(u *model.User, r *model.Repo) ([]model.Tag, error)
+
+	// Tag applies a tag with the specified version to the specified sha
+	Tag(u *model.User, r *model.Repo, version *string, sha *string) error
+
+	// GetPullRequestsForCommit returns all pull requests associated with a commit SHA
+	GetPullRequestsForCommit(u *model.User, r *model.Repo, sha *string) ([]model.PullRequest, error)
+
+	// WriteComment puts a new comment from LGTM into the PR
+	WriteComment(u *model.User, r *model.Repo, num int, message string) error
 }
 
 // GetUser authenticates a user with the remote system.
@@ -92,6 +116,11 @@ func GetComments(c context.Context, u *model.User, r *model.Repo, num int) ([]*m
 	return FromContext(c).GetComments(u, r, num)
 }
 
+// GetCommentsSinceHead gets pull request comments from the remote system since the head commit was committed
+func GetCommentsSinceHead(c context.Context, u *model.User, r *model.Repo, num int) ([]*model.Comment, error) {
+	return FromContext(c).GetCommentsSinceHead(u, r, num)
+}
+
 // GetContents gets the file contents from the remote system.
 func GetContents(c context.Context, u *model.User, r *model.Repo, path string) ([]byte, error) {
 	return FromContext(c).GetContents(u, r, path)
@@ -115,4 +144,35 @@ func SetStatus(c context.Context, u *model.User, r *model.Repo, num int, ok bool
 // GetHook gets the hook from the http Request.
 func GetHook(c context.Context, r *http.Request) (*model.Hook, error) {
 	return FromContext(c).GetHook(r)
+}
+
+// GetStatusHook gets the status hook from the http Request.
+func GetStatusHook(c context.Context, r *http.Request) (*model.StatusHook, error) {
+	return FromContext(c).GetStatusHook(r)
+}
+
+// GetPRHook gets the pull request hook from the http Request.
+func GetPRHook(c context.Context, r *http.Request) (*model.PRHook, error) {
+	return FromContext(c).GetPRHook(r)
+}
+
+func MergePR(c context.Context, u *model.User, r *model.Repo, pullRequest model.PullRequest, approvers []*model.Person) (*string, error) {
+	return FromContext(c).MergePR(u, r, pullRequest, approvers)
+}
+
+func ListTags(c context.Context, u *model.User, r *model.Repo) ([]model.Tag, error) {
+	return FromContext(c).ListTags(u, r)
+}
+
+func Tag(c context.Context, u *model.User, r *model.Repo, version *string, sha *string) error {
+	return FromContext(c).Tag(u, r, version, sha)
+}
+
+func GetPullRequestsForCommit(c context.Context, u *model.User, r *model.Repo, sha *string) ([]model.PullRequest, error) {
+	return FromContext(c).GetPullRequestsForCommit(u, r, sha)
+
+}
+
+func WriteComment(c context.Context, u *model.User, r *model.Repo, num int, message string) error {
+	return FromContext(c).WriteComment(u, r, num, message)
 }
