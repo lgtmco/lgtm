@@ -7,6 +7,7 @@ import (
 	"strings"
 	"time"
 
+	"errors"
 	log "github.com/Sirupsen/logrus"
 	"github.com/google/go-github/github"
 	"github.com/lgtmco/lgtm/model"
@@ -180,11 +181,6 @@ func (g *Github) GetRepos(u *model.User) ([]*model.Repo, error) {
 func (g *Github) SetHook(user *model.User, repo *model.Repo, link string) error {
 	client := setupClient(g.API, user.Token)
 
-	repo_, _, err := client.Repositories.Get(repo.Owner, repo.Name)
-	if err != nil {
-		return err
-	}
-
 	old, err := GetHook(client, repo.Owner, repo.Name, link)
 	if err == nil && old != nil {
 		client.Repositories.DeleteHook(repo.Owner, repo.Name, *old.ID)
@@ -196,12 +192,24 @@ func (g *Github) SetHook(user *model.User, repo *model.Repo, link string) error 
 		return err
 	}
 
+	repo_, _, err := client.Repositories.Get(repo.Owner, repo.Name)
+	if err != nil {
+		return err
+	}
+
 	in := new(Branch)
 	in.Protection.Enabled = true
 	in.Protection.Checks.Enforcement = "non_admins"
-	in.Protection.Checks.Contexts = []string{context}
 
+	/*
+		JCB 04/21/16 confirmed with Github support -- must specify all existing contexts when
+		 adding a new one, otherwise the other contexts will be removed.
+	*/
 	client_ := NewClientToken(g.API, user.Token)
+	branch, _ := client_.Branch(repo.Owner, repo.Name, *repo_.DefaultBranch)
+
+	in.Protection.Checks.Contexts = append(buildOtherContextSlice(branch), context)
+
 	err = client_.BranchProtect(repo.Owner, repo.Name, *repo_.DefaultBranch, in)
 	if err != nil {
 		if g.URL == "https://github.com" {
@@ -236,20 +244,55 @@ func (g *Github) DelHook(user *model.User, repo *model.Repo, link string) error 
 	if len(branch.Protection.Checks.Contexts) == 0 {
 		return nil
 	}
+
+	branch.Protection.Checks.Contexts = buildOtherContextSlice(branch)
+
+	return client_.BranchProtect(repo.Owner, repo.Name, *repo_.DefaultBranch, branch)
+}
+
+// buildOtherContextSlice returns all contexts besides the one for LGTM
+func buildOtherContextSlice(branch *Branch) []string {
 	checks := []string{}
 	for _, check := range branch.Protection.Checks.Contexts {
 		if check != context {
 			checks = append(checks, check)
 		}
 	}
-	branch.Protection.Checks.Contexts = checks
-	return client_.BranchProtect(repo.Owner, repo.Name, *repo_.DefaultBranch, branch)
+	return checks
 }
 
 func (g *Github) GetComments(u *model.User, r *model.Repo, num int) ([]*model.Comment, error) {
 	client := setupClient(g.API, u.Token)
 
 	opts := github.IssueListCommentsOptions{Direction: "desc", Sort: "created"}
+	opts.PerPage = 100
+	comments_, _, err := client.Issues.ListComments(r.Owner, r.Name, num, &opts)
+	if err != nil {
+		return nil, err
+	}
+	comments := []*model.Comment{}
+	for _, comment := range comments_ {
+		comments = append(comments, &model.Comment{
+			Author: *comment.User.Login,
+			Body:   *comment.Body,
+		})
+	}
+	return comments, nil
+}
+
+func (g *Github) GetCommentsSinceHead(u *model.User, r *model.Repo, num int) ([]*model.Comment, error) {
+	client := setupClient(g.API, u.Token)
+
+	pr, _, err := client.PullRequests.Get(r.Owner, r.Name, num)
+	if err != nil {
+		return nil, err
+	}
+
+	commit, _, err := client.Repositories.GetCommit(r.Owner, r.Name, *pr.Head.SHA)
+	if err != nil {
+		return nil, err
+	}
+	opts := github.IssueListCommentsOptions{Direction: "desc", Sort: "created", Since: *commit.Commit.Committer.Date}
 	opts.PerPage = 100
 	comments_, _, err := client.Issues.ListComments(r.Owner, r.Name, num, &opts)
 	if err != nil {
@@ -329,4 +372,234 @@ func (g *Github) GetHook(r *http.Request) (*model.Hook, error) {
 	hook.Comment.Author = data.Comment.User.Login
 
 	return hook, nil
+}
+
+func (g *Github) GetStatusHook(r *http.Request) (*model.StatusHook, error) {
+
+	// only process comment hooks
+	if r.Header.Get("X-Github-Event") != "status" {
+		return nil, nil
+	}
+
+	data := statusHook{}
+	err := json.NewDecoder(r.Body).Decode(&data)
+	if err != nil {
+		return nil, err
+	}
+
+	log.Debug(data)
+
+	if data.State != "success" {
+		return nil, nil
+	}
+
+	hook := new(model.StatusHook)
+
+	hook.SHA = data.SHA
+
+	hook.Repo = new(model.Repo)
+	hook.Repo.Owner = data.Repository.Owner.Login
+	hook.Repo.Name = data.Repository.Name
+	hook.Repo.Slug = data.Repository.FullName
+
+	log.Debug(*hook)
+
+	return hook, nil
+}
+
+func (g *Github) GetPRHook(r *http.Request) (*model.PRHook, error) {
+
+	// only process comment hooks
+	if r.Header.Get("X-Github-Event") != "pull_request" {
+		return nil, nil
+	}
+
+	data := prHook{}
+	err := json.NewDecoder(r.Body).Decode(&data)
+	if err != nil {
+		return nil, err
+	}
+
+	log.Debug(data)
+
+	if data.Action != "opened" && data.Action != "synchronize" {
+		return nil, nil
+	}
+
+	hook := new(model.PRHook)
+
+	hook.Number = data.Number
+	hook.Update = (data.Action == "synchronize")
+	hook.Repo = new(model.Repo)
+	hook.Repo.Owner = data.Repository.Owner.Login
+	hook.Repo.Name = data.Repository.Name
+	hook.Repo.Slug = data.Repository.FullName
+
+	log.Debug(*hook)
+
+	return hook, nil
+}
+
+func (g *Github) GetPullRequestsForCommit(u *model.User, r *model.Repo, sha *string) ([]model.PullRequest, error) {
+	client := setupClient(g.API, u.Token)
+	log.Debug("sha == ", *sha)
+	issues, _, err := client.Search.Issues(fmt.Sprintf("%s&type=pr", *sha), &github.SearchOptions{
+		TextMatch: false,
+	})
+	if err != nil {
+		return nil, err
+	}
+	out := []model.PullRequest{}
+	for _, v := range issues.Issues {
+		pr, _, err := client.PullRequests.Get(r.Owner, r.Name, *v.Number)
+		if err != nil {
+			return nil, err
+		}
+
+		log.Debug("current issue ==", v)
+		log.Debug("current pr ==", *pr)
+
+		if *pr.Head.SHA != *sha {
+			log.Debugf("Pull Request %s has sha %s at head, not sha %s, so not a pull request for this commit", *pr.Title, *pr.Head.SHA, *sha)
+			continue
+		}
+		mergeable := true
+		if pr.Mergeable != nil {
+			mergeable = *pr.Mergeable
+		}
+
+		status, _, err := client.Repositories.GetCombinedStatus(r.Owner, r.Name, *sha, nil)
+		if err != nil {
+			return nil, err
+		}
+
+		log.Debug("combined status ==", *status)
+
+		combinedState := *status.State
+		if combinedState == "success" {
+			log.Debug("overall status is success -- checking to see if all status checks returned success")
+			for _, v := range status.Statuses {
+				log.Debugf("status check %s returned %s", *v.Context, *v.State)
+				if *v.State != "success" {
+					log.Debugf("setting combined status check to %s", *v.State)
+					combinedState = *v.State
+				}
+			}
+		}
+
+		out = append(out, model.PullRequest{
+			Issue: model.Issue{
+				Number: *v.Number,
+				Title:  *v.Title,
+				Author: *v.User.Login,
+			},
+			Branch: model.Branch{
+				Name:         *pr.Head.Ref,
+				BranchStatus: combinedState,
+				Mergeable:    mergeable,
+				BaseName:     *pr.Base.Ref,
+			},
+		})
+	}
+	return out, nil
+}
+
+func (g *Github) MergePR(u *model.User, r *model.Repo, pullRequest model.PullRequest, approvers []*model.Person) (*string, error) {
+	client := setupClient(g.API, u.Token)
+
+	msg := "Merged by LGTM\n"
+	if len(approvers) > 0 {
+		apps := "Approved by:\n"
+		for _, v := range approvers {
+			//Brad Rydzewski <brad.rydzewski@mail.com> (@bradrydzewski)
+			if len(v.Name) > 0 {
+				apps += fmt.Sprintf("%s", v.Name)
+			}
+			if len(v.Email) > 0 {
+				apps += fmt.Sprintf(" <%s>", v.Email)
+			}
+			if len(v.Login) > 0 {
+				apps += fmt.Sprintf(" (@%s)", v.Login)
+			}
+			apps += "\n"
+		}
+		msg += apps
+	}
+	result, _, err := client.PullRequests.Merge(r.Owner, r.Name, pullRequest.Number, msg)
+	if err != nil {
+		return nil, err
+	}
+
+	if !(*result.Merged) {
+		return nil, errors.New(*result.Message)
+	}
+	return result.SHA, nil
+}
+
+func (g *Github) ListTags(u *model.User, r *model.Repo) ([]model.Tag, error) {
+	client := setupClient(g.API, u.Token)
+
+	tags, _, err := client.Repositories.ListTags(r.Owner, r.Name, nil)
+	if err != nil {
+		return nil, err
+	}
+	out := make([]model.Tag, len(tags))
+	for k, v := range tags {
+		out[k] = model.Tag(*v.Name)
+	}
+	return out, nil
+}
+
+func (g *Github) Tag(u *model.User, r *model.Repo, version *string, sha *string) error {
+	client := setupClient(g.API, u.Token)
+
+	t := time.Now()
+	tag, _, err := client.Git.CreateTag(r.Owner, r.Name, &github.Tag{
+		Tag:     version,
+		SHA:     sha,
+		Message: github.String("Tagged by LGTM"),
+		Tagger: &github.CommitAuthor{
+			Date:  &t,
+			Name:  github.String("LGTM"),
+			Email: github.String("LGTM@lgtm.co"),
+		},
+		Object: &github.GitObject{
+			SHA:  sha,
+			Type: github.String("commit"),
+		},
+	})
+
+	if err != nil {
+		return err
+	}
+	_, _, err = client.Git.CreateRef(r.Owner, r.Name, &github.Reference{
+		Ref: github.String("refs/tags/" + *version),
+		Object: &github.GitObject{
+			SHA: tag.SHA,
+		},
+	})
+
+	return err
+}
+
+func (g *Github) WriteComment(u *model.User, r *model.Repo, num int, message string) error {
+	client := setupClient(g.API, u.Token)
+	emsg := "Message from LGTM -- " + message
+	_, _, err := client.Issues.CreateComment(r.Owner, r.Name, num, &github.IssueComment{
+		Body: github.String(emsg),
+	})
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func (g *Github) ScheduleDeployment(u *model.User, r *model.Repo, d model.DeploymentInfo) error {
+	client := setupClient(g.API, u.Token)
+	_, _, err := client.Repositories.CreateDeployment(r.Owner, r.Name, &github.DeploymentRequest{
+		Ref:         github.String(d.Ref),
+		Task:        github.String(d.Task),
+		Environment: github.String(d.Environment),
+	})
+	return err
 }

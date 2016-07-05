@@ -11,6 +11,8 @@ import (
 	"github.com/gin-gonic/contrib/ginrus"
 	"github.com/ianschenck/envflag"
 	_ "github.com/joho/godotenv/autoload"
+
+	_ "github.com/lgtmco/lgtm/approval/org"
 )
 
 var (

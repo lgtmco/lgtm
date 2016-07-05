@@ -38,15 +38,57 @@ type commentHook struct {
 		} `json:"user"`
 	} `json:"comment"`
 
-	Repository struct {
-		Name     string `json:"name"`
-		FullName string `json:"full_name"`
-		Desc     string `json:"description"`
-		Private  bool   `json:"private"`
-		Owner    struct {
-			Login  string `json:"login"`
-			Type   string `json:"type"`
-			Avatar string `json:"avatar_url"`
-		} `json:"owner"`
-	} `json:"repository"`
+	Repository Repository `json:"repository"`
+}
+
+type statusHook struct {
+	SHA   string `json:"sha"`
+	State string `json:"state"`
+
+	Branches []struct {
+		Name   string `json:"name"`
+		Commit struct {
+			SHA string `json:"sha"`
+			URL string `json:"url"`
+		} `json:"commit"`
+	} `json:"branches"`
+
+	Repository Repository `json:"repository"`
+}
+
+type prHook struct {
+	Action string `json:"action"`
+	Number int    `json:"number"`
+
+	Repository Repository `json:"repository"`
+}
+
+type pushHook struct {
+	HeadCommit *struct {
+		ID string `json:"id"`
+	} `json:"head_commit"`
+
+	Repository Repository `json:"repository"`
+}
+
+type deploymentHook struct {
+	Deployment struct {
+		SHA         string `json:"sha"`
+		Ref         string `json:"ref"`
+		Task        string `json:"task"`
+		Environment string `json:"environment"`
+	} `json:"deployment"`
+	Repository Repository `json:"repository"`
+}
+
+type Repository struct {
+	Name     string `json:"name"`
+	FullName string `json:"full_name"`
+	Desc     string `json:"description"`
+	Private  bool   `json:"private"`
+	Owner    struct {
+		Login  string `json:"login"`
+		Type   string `json:"type"`
+		Avatar string `json:"avatar_url"`
+	} `json:"owner"`
 }

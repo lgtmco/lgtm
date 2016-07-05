@@ -1,15 +1,12 @@
 package web
 
 import (
-	"regexp"
-
+	log "github.com/Sirupsen/logrus"
+	"github.com/gin-gonic/gin"
 	"github.com/lgtmco/lgtm/cache"
 	"github.com/lgtmco/lgtm/model"
 	"github.com/lgtmco/lgtm/remote"
 	"github.com/lgtmco/lgtm/store"
-
-	log "github.com/Sirupsen/logrus"
-	"github.com/gin-gonic/gin"
 )
 
 func Hook(c *gin.Context) {
@@ -19,30 +16,94 @@ func Hook(c *gin.Context) {
 		c.String(500, "Error parsing hook. %s", err)
 		return
 	}
-	if hook == nil {
-		c.String(200, "pong")
+	if hook != nil {
+		processCommentHook(c, hook)
+	}
+
+	statusHook, err := remote.GetStatusHook(c, c.Request)
+	if err != nil {
+		log.Errorf("Error parsing status hook. %s", err)
+		c.String(500, "Error parsing status hook. %s", err)
+		return
+	}
+	if statusHook != nil {
+		processStatusHook(c, statusHook)
+	}
+
+	prHook, err := remote.GetPRHook(c, c.Request)
+	if prHook != nil {
+		processPRHook(c, prHook)
+	}
+
+	if err != nil {
+		log.Errorf("Error parsing pull request hook. %s", err)
+		c.String(500, "Error parsing pull request hook. %s", err)
 		return
 	}
 
-	repo, err := store.GetRepoSlug(c, hook.Repo.Slug)
-	if err != nil {
-		log.Errorf("Error getting repository %s. %s", hook.Repo.Slug, err)
-		c.String(404, "Repository not found.")
+	if hook == nil && statusHook == nil && prHook == nil {
+		c.String(200, "pong")
 		return
+	}
+}
+
+func processPRHook(c *gin.Context, prHook *model.PRHook) {
+	repo, user, err := getRepoAndUser(c, prHook.Repo.Slug)
+	if err != nil {
+		return
+	}
+
+	err = remote.SetStatus(c, user, repo, prHook.Number, false)
+	if err != nil {
+		log.Errorf("Error setting status. %s", err)
+		c.String(500, "Error setting status. %s", err)
+		return
+	}
+
+	config, _, err := getConfigAndMaintainers(c, user, repo)
+	if err != nil {
+		return
+	}
+
+	if prHook.Update && config.DoComment {
+		err = remote.WriteComment(c, user, repo, prHook.Number, "The Pull Request has been updated. No comments before this one will count for approval.")
+		if err != nil {
+			log.Errorf("Error writing comment for status. %s", err)
+			c.String(500, "Error writing comment for status. %s", err)
+			return
+		}
+	}
+
+	c.IndentedJSON(200, gin.H{
+		"number":   prHook.Number,
+		"approved": false,
+	})
+}
+
+func getRepoAndUser(c *gin.Context, slug string) (*model.Repo, *model.User, error) {
+	repo, err := store.GetRepoSlug(c, slug)
+	if err != nil {
+		log.Errorf("Error getting repository %s. %s", slug, err)
+		c.String(404, "Repository not found.")
+		return nil, nil, err
 	}
 	user, err := store.GetUser(c, repo.UserID)
 	if err != nil {
 		log.Errorf("Error getting repository owner %s. %s", repo.Slug, err)
 		c.String(404, "Repository owner not found.")
-		return
+		return nil, nil, err
 	}
+	return repo, user, err
+}
 
+func getConfigAndMaintainers(c *gin.Context, user *model.User, repo *model.Repo) (*model.Config, *model.Maintainer, error) {
 	rcfile, _ := remote.GetContents(c, user, repo, ".lgtm")
-	config, err := model.ParseConfig(rcfile)
+	deployFile, _ := remote.GetContents(c, user, repo, "DEPLOYMENTS")
+	config, err := model.ParseConfig(rcfile, deployFile)
 	if err != nil {
 		log.Errorf("Error parsing .lgtm file for %s. %s", repo.Slug, err)
 		c.String(500, "Error parsing .lgtm file. %s.", err)
-		return
+		return nil, nil, err
 	}
 
 	// THIS IS COMPLETELY DUPLICATED IN THE API SECTION. NOT IDEAL
@@ -54,7 +115,7 @@ func Hook(c *gin.Context) {
 			log.Errorf("Error getting repository %s. %s", repo.Slug, err)
 			log.Errorf("Error getting org members %s. %s", repo.Owner, merr)
 			c.String(404, "MAINTAINERS file not found. %s", err)
-			return
+			return nil, nil, err
 		} else {
 			for _, member := range members {
 				file = append(file, member.Login...)
@@ -67,66 +128,17 @@ func Hook(c *gin.Context) {
 	if err != nil {
 		log.Errorf("Error parsing MAINTAINERS file for %s. %s", repo.Slug, err)
 		c.String(500, "Error parsing MAINTAINERS file. %s.", err)
-		return
+		return nil, nil, err
 	}
-
-	comments, err := remote.GetComments(c, user, repo, hook.Issue.Number)
-	if err != nil {
-		log.Errorf("Error retrieving comments for %s pr %d. %s", repo.Slug, hook.Issue.Number, err)
-		c.String(500, "Error retrieving comments. %s.", err)
-		return
-	}
-	approvers := getApprovers(config, maintainer, hook.Issue, comments)
-	approved := len(approvers) >= config.Approvals
-	err = remote.SetStatus(c, user, repo, hook.Issue.Number, approved)
-	if err != nil {
-		log.Errorf("Error setting status for %s pr %d. %s", repo.Slug, hook.Issue.Number, err)
-		c.String(500, "Error setting status. %s.", err)
-		return
-	}
-
-	log.Debugf("processed comment for %s. received %d of %d approvals", repo.Slug, len(approvers), config.Approvals)
-
-	c.IndentedJSON(200, gin.H{
-		"approvers":   maintainer.People,
-		"settings":    config,
-		"approved":    approved,
-		"approved_by": approvers,
-	})
+	return config, maintainer, nil
 }
 
-// getApprovers is a helper function that analyzes the list of comments
-// and returns the list of approvers.
-func getApprovers(config *model.Config, maintainer *model.Maintainer, issue *model.Issue, comments []*model.Comment) []*model.Person {
-	approverm := map[string]bool{}
-	approvers := []*model.Person{}
-
-	matcher, err := regexp.Compile(config.Pattern)
+func getComments(c *gin.Context, user *model.User, repo *model.Repo, num int) ([]*model.Comment, error) {
+	comments, err := remote.GetCommentsSinceHead(c, user, repo, num)
 	if err != nil {
-		// this should never happen
-		return approvers
+		log.Errorf("Error retrieving comments for %s pr %d. %s", repo.Slug, num, err)
+		c.String(500, "Error retrieving comments. %s.", err)
+		return nil, err
 	}
-
-	for _, comment := range comments {
-		// cannot lgtm your own pull request
-		if config.SelfApprovalOff && comment.Author == issue.Author {
-			continue
-		}
-		// the user must be a valid maintainer of the project
-		person, ok := maintainer.People[comment.Author]
-		if !ok {
-			continue
-		}
-		// the same author can't approve something twice
-		if _, ok := approverm[comment.Author]; ok {
-			continue
-		}
-		// verify the comment matches the approval pattern
-		if matcher.MatchString(comment.Body) {
-			approverm[comment.Author] = true
-			approvers = append(approvers, person)
-		}
-	}
-
-	return approvers
+	return comments, nil
 }
