@@ -93,3 +93,22 @@ func GetMembers(c context.Context, user *model.User, team string) ([]*model.Memb
 	FromContext(c).Set(key, members)
 	return members, nil
 }
+
+func GetTags(c context.Context, user *model.User, repo *model.Repo) (model.TagList, error) {
+	key := fmt.Sprintf("tags:%s",
+		user.Login,
+	)
+	// if we fetch from the cache we can return immediately
+	val, err := FromContext(c).Get(key)
+	if err == nil {
+		return val.(model.TagList), nil
+	}
+	// else we try to grab from the remote system and
+	// populate our cache.
+	tags, err := remote.GetTagList(c, user, repo)
+	if err != nil {
+		return nil, err
+	}
+	FromContext(c).Set(key, tags)
+	return tags, nil
+}

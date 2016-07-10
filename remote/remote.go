@@ -51,17 +51,14 @@ type Remote interface {
 	// GetHook gets the hook from the http Request.
 	GetHook(r *http.Request) (*model.Hook, error)
 
-	// GetStatusHook gets the status hook from the http Request.
-	GetStatusHook(r *http.Request) (*model.StatusHook, error)
-
 	// GetBranchStatus returns overall status for the named branch from the remote system
 	GetBranchStatus(*model.User, *model.Repo, string) (*model.BranchStatus, error)
 
 	// MergePR merges the named pull request from the remote system
 	MergePR(u *model.User, r *model.Repo, pullRequest model.PullRequest) (*string, error)
 
-	// GetMaxExistingTag finds the highest version across all tags
-	GetMaxExistingTag(u *model.User, r *model.Repo) (*version.Version, error)
+	// GetTagList gets all tags in the repo
+	GetTagList(u *model.User, r *model.Repo) (model.TagList, error)
 
 	// Tag applies a tag with the specified version to the specified sha
 	Tag(u *model.User, r *model.Repo, version *version.Version, sha *string) error
@@ -136,11 +133,6 @@ func GetHook(c context.Context, r *http.Request) (*model.Hook, error) {
 	return FromContext(c).GetHook(r)
 }
 
-// GetStatusHook gets the status hook from the http Request.
-func GetStatusHook(c context.Context, r *http.Request) (*model.StatusHook, error) {
-	return FromContext(c).GetStatusHook(r)
-}
-
 // GetBranchStatus gets the overal status for a branch from the remote repository.
 func GetBranchStatus(c context.Context, u *model.User, r *model.Repo, branch string) (*model.BranchStatus, error) {
 	return FromContext(c).GetBranchStatus(u, r, branch)
@@ -150,8 +142,8 @@ func MergePR(c context.Context, u *model.User, r *model.Repo, pullRequest model.
 	return FromContext(c).MergePR(u, r, pullRequest)
 }
 
-func GetMaxExistingTag(c context.Context, u *model.User, r *model.Repo) (*version.Version, error) {
-	return FromContext(c).GetMaxExistingTag(u, r)
+func GetTagList(c context.Context, u *model.User, r *model.Repo) (model.TagList, error) {
+	return FromContext(c).GetTagList(u, r)
 }
 
 func Tag(c context.Context, u *model.User, r *model.Repo, version *version.Version, sha *string) error {
@@ -160,5 +152,4 @@ func Tag(c context.Context, u *model.User, r *model.Repo, version *version.Versi
 
 func GetPullRequestsForCommit(c context.Context, u *model.User, r *model.Repo, sha *string) ([]model.PullRequest, error) {
 	return FromContext(c).GetPullRequestsForCommit(u, r, sha)
-
 }

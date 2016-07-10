@@ -316,12 +316,27 @@ func (g *Github) SetStatus(u *model.User, r *model.Repo, num int, ok bool) error
 }
 
 func (g *Github) GetHook(r *http.Request) (*model.Hook, error) {
-
-	// only process comment hooks
-	if r.Header.Get("X-Github-Event") != "issue_comment" {
-		return nil, nil
+	hook := &model.Hook{}
+	kind := r.Header.Get("X-Github-Event")
+	hook.Kind = kind
+	switch kind {
+	case "issue_comment":
+		issueComment, err := processIssueCommentHook(r)
+		if err != nil {
+			return nil, err
+		}
+		hook.IssueComment = issueComment
+	case "status":
+		status, err := processStatusHook(r)
+		if err != nil {
+			return nil, err
+		}
+		hook.Status = status
 	}
+	return hook, nil
+}
 
+func processIssueCommentHook(r *http.Request) (*model.IssueCommentHook, error) {
 	data := commentHook{}
 	err := json.NewDecoder(r.Body).Decode(&data)
 	if err != nil {
@@ -332,7 +347,7 @@ func (g *Github) GetHook(r *http.Request) (*model.Hook, error) {
 		return nil, nil
 	}
 
-	hook := new(model.Hook)
+	hook := new(model.IssueCommentHook)
 	hook.Issue = new(model.Issue)
 	hook.Issue.Number = data.Issue.Number
 	hook.Issue.Author = data.Issue.User.Login
@@ -347,13 +362,7 @@ func (g *Github) GetHook(r *http.Request) (*model.Hook, error) {
 	return hook, nil
 }
 
-func (g *Github) GetStatusHook(r *http.Request) (*model.StatusHook, error) {
-
-	// only process comment hooks
-	if r.Header.Get("X-Github-Event") != "status" {
-		return nil, nil
-	}
-
+func processStatusHook(r *http.Request) (*model.StatusHook, error) {
 	data := statusHook{}
 	err := json.NewDecoder(r.Body).Decode(&data)
 	if err != nil {
@@ -446,31 +455,18 @@ func (g *Github) MergePR(u *model.User, r *model.Repo, pullRequest model.PullReq
 	return result.SHA, nil
 }
 
-func (g *Github) GetMaxExistingTag(u *model.User, r *model.Repo) (*version.Version, error) {
+func (g *Github) GetTagList(u *model.User, r *model.Repo) (model.TagList, error) {
 	client := setupClient(g.API, u.Token)
-
-	//find the previous largest semver value
-	var maxVer *version.Version
 
 	tags, _, err := client.Repositories.ListTags(r.Owner, r.Name, nil)
 	if err != nil {
 		return nil, err
 	}
-	for _, v := range tags {
-		curVer, err := version.NewVersion(*v.Name)
-		if err != nil {
-			continue
-		}
-		if maxVer == nil || curVer.GreaterThan(maxVer) {
-			maxVer = curVer
-		}
+	out := make(model.TagList, len(tags))
+	for k, v := range tags {
+		out[k] = model.Tag(*v.Name)
 	}
-
-	if maxVer == nil {
-		maxVer, _ = version.NewVersion("v0.0.0")
-	}
-	log.Debugf("maxVer found is %s", maxVer.String())
-	return maxVer, nil
+	return out, nil
 }
 
 func (g *Github) Tag(u *model.User, r *model.Repo, version *version.Version, sha *string) error {

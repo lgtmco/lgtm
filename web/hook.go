@@ -12,7 +12,6 @@ import (
 	log "github.com/Sirupsen/logrus"
 	"github.com/gin-gonic/gin"
 	"github.com/hashicorp/go-version"
-	"github.com/lgtmco/lgtm/version"
 )
 
 func Hook(c *gin.Context) {
@@ -22,23 +21,13 @@ func Hook(c *gin.Context) {
 		c.String(500, "Error parsing hook. %s", err)
 		return
 	}
-	if hook != nil {
-		processCommentHook(c, hook)
-	}
-
-	statusHook, err := remote.GetStatusHook(c, c.Request)
-	if err != nil {
-		log.Errorf("Error parsing status hook. %s", err)
-		c.String(500, "Error parsing status hook. %s", err)
-		return
-	}
-	if statusHook != nil {
-		processStatusHook(c, statusHook)
-	}
-
-	if hook == nil && statusHook == nil {
+	switch hook.Kind {
+	case "issue_comment":
+		processCommentHook(c, hook.IssueComment)
+	case "status":
+		processStatusHook(c, hook.Status)
+	default:
 		c.String(200, "pong")
-		return
 	}
 }
 
@@ -97,11 +86,13 @@ func processStatusHook(c *gin.Context, hook *model.StatusHook) {
 
 			// to create the version, need to scan the comments on the pull request to see if anyone specified a version #
 			// if so, use the largest specified version #. if not, increment the last version version # for the release
-			maxVer, err := remote.GetMaxExistingTag(c, user, hook.Repo)
+			tags, err := remote.GetTagList(c, user, hook.Repo)
 			if err != nil {
-				log.Warnf("Unable to find the max version tag for %s/%s: %s", hook.Repo.Owner, hook.Repo.Name, err)
+				log.Warnf("Unable to get the tags for %s/%s: %s", hook.Repo.Owner, hook.Repo.Name, err)
 				continue
 			}
+
+			_, maxVer := tags.GetMaxTag()
 
 			comments, err := getComments(c, user, repo, v.Number)
 			if err != nil {
@@ -134,7 +125,7 @@ func processStatusHook(c *gin.Context, hook *model.StatusHook) {
 	})
 }
 
-func processCommentHook(c *gin.Context, hook *model.Hook) {
+func processCommentHook(c *gin.Context, hook *model.IssueCommentHook) {
 
 	repo, err := store.GetRepoSlug(c, hook.Repo.Slug)
 	if err != nil {
