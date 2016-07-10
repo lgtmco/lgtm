@@ -11,7 +11,7 @@ type PullRequest struct {
 }
 
 type Branch struct {
-	Name         string
-	BranchStatus string
-	Mergeable    bool
+	Name      string
+	Status    string
+	Mergeable bool
 }

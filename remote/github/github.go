@@ -413,9 +413,9 @@ func (g *Github) GetPullRequestsForCommit(u *model.User, r *model.Repo, sha *str
 				Author: *v.User.Login,
 			},
 			Branch: model.Branch{
-				Name:         *pr.Head.Ref,
-				BranchStatus: *status.State,
-				Mergeable:    mergeable,
+				Name:      *pr.Head.Ref,
+				Status:    *status.State,
+				Mergeable: mergeable,
 			},
 		}
 	}

@@ -12,6 +12,7 @@ import (
 	log "github.com/Sirupsen/logrus"
 	"github.com/gin-gonic/gin"
 	"github.com/hashicorp/go-version"
+	"github.com/lgtmco/lgtm/version"
 )
 
 func Hook(c *gin.Context) {
@@ -79,7 +80,7 @@ func processStatusHook(c *gin.Context, hook *model.StatusHook) {
 	//check the statuses of all of the checks on the branches for this commit
 	for _, v := range pullRequests {
 		//if all of the statuses are success, then merge and create a tag for the version
-		if v.Branch.BranchStatus == "success" && v.Branch.Mergeable {
+		if v.Branch.Status == "success" && v.Branch.Mergeable {
 			sha, err := remote.MergePR(c, user, hook.Repo, v)
 			if err != nil {
 				log.Warnf("Unable to merge pull request %s: %s", v.Title, err)
