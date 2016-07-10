@@ -5,6 +5,7 @@ package remote
 import (
 	"net/http"
 
+	"github.com/hashicorp/go-version"
 	"github.com/lgtmco/lgtm/model"
 	"golang.org/x/net/context"
 )
@@ -49,6 +50,21 @@ type Remote interface {
 
 	// GetHook gets the hook from the http Request.
 	GetHook(r *http.Request) (*model.Hook, error)
+
+	// GetBranchStatus returns overall status for the named branch from the remote system
+	GetBranchStatus(*model.User, *model.Repo, string) (*model.BranchStatus, error)
+
+	// MergePR merges the named pull request from the remote system
+	MergePR(u *model.User, r *model.Repo, pullRequest model.PullRequest) (*string, error)
+
+	// GetTagList gets all tags in the repo
+	GetTagList(u *model.User, r *model.Repo) (model.TagList, error)
+
+	// Tag applies a tag with the specified version to the specified sha
+	Tag(u *model.User, r *model.Repo, version *version.Version, sha *string) error
+
+	// GetPullRequestsForCommit returns all pull requests associated with a commit SHA
+	GetPullRequestsForCommit(u *model.User, r *model.Repo, sha *string) ([]model.PullRequest, error)
 }
 
 // GetUser authenticates a user with the remote system.
@@ -115,4 +131,25 @@ func SetStatus(c context.Context, u *model.User, r *model.Repo, num int, ok bool
 // GetHook gets the hook from the http Request.
 func GetHook(c context.Context, r *http.Request) (*model.Hook, error) {
 	return FromContext(c).GetHook(r)
+}
+
+// GetBranchStatus gets the overal status for a branch from the remote repository.
+func GetBranchStatus(c context.Context, u *model.User, r *model.Repo, branch string) (*model.BranchStatus, error) {
+	return FromContext(c).GetBranchStatus(u, r, branch)
+}
+
+func MergePR(c context.Context, u *model.User, r *model.Repo, pullRequest model.PullRequest) (*string, error) {
+	return FromContext(c).MergePR(u, r, pullRequest)
+}
+
+func GetTagList(c context.Context, u *model.User, r *model.Repo) (model.TagList, error) {
+	return FromContext(c).GetTagList(u, r)
+}
+
+func Tag(c context.Context, u *model.User, r *model.Repo, version *version.Version, sha *string) error {
+	return FromContext(c).Tag(u, r, version, sha)
+}
+
+func GetPullRequestsForCommit(c context.Context, u *model.User, r *model.Repo, sha *string) ([]model.PullRequest, error) {
+	return FromContext(c).GetPullRequestsForCommit(u, r, sha)
 }

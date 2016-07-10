@@ -34,6 +34,7 @@ func Load(middleware ...gin.HandlerFunc) http.Handler {
 	e.DELETE("/api/repos/:owner/:repo", session.UserMust, access.RepoAdmin, api.DeleteRepo)
 	e.GET("/api/repos/:owner/:repo/maintainers", session.UserMust, access.RepoPull, api.GetMaintainer)
 	e.GET("/api/repos/:owner/:repo/maintainers/:org", session.UserMust, access.RepoPull, api.GetMaintainerOrg)
+	e.GET("/api/repos/:owner/:repo/tags", session.UserMust, access.RepoPull, api.GetTags)
 
 	e.POST("/hook", web.Hook)
 	e.GET("/login", web.Login)

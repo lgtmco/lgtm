@@ -7,8 +7,10 @@ import (
 	"strings"
 	"time"
 
+	"errors"
 	log "github.com/Sirupsen/logrus"
 	"github.com/google/go-github/github"
+	"github.com/hashicorp/go-version"
 	"github.com/lgtmco/lgtm/model"
 	"github.com/lgtmco/lgtm/shared/httputil"
 	"golang.org/x/oauth2"
@@ -180,11 +182,6 @@ func (g *Github) GetRepos(u *model.User) ([]*model.Repo, error) {
 func (g *Github) SetHook(user *model.User, repo *model.Repo, link string) error {
 	client := setupClient(g.API, user.Token)
 
-	repo_, _, err := client.Repositories.Get(repo.Owner, repo.Name)
-	if err != nil {
-		return err
-	}
-
 	old, err := GetHook(client, repo.Owner, repo.Name, link)
 	if err == nil && old != nil {
 		client.Repositories.DeleteHook(repo.Owner, repo.Name, *old.ID)
@@ -196,12 +193,24 @@ func (g *Github) SetHook(user *model.User, repo *model.Repo, link string) error 
 		return err
 	}
 
+	repo_, _, err := client.Repositories.Get(repo.Owner, repo.Name)
+	if err != nil {
+		return err
+	}
+
 	in := new(Branch)
 	in.Protection.Enabled = true
 	in.Protection.Checks.Enforcement = "non_admins"
-	in.Protection.Checks.Contexts = []string{context}
 
+	/*
+		JCB 04/21/16 confirmed with Github support -- must specify all existing contexts when
+		 adding a new one, otherwise the other contexts will be removed.
+	*/
 	client_ := NewClientToken(g.API, user.Token)
+	branch, _ := client_.Branch(repo.Owner, repo.Name, *repo_.DefaultBranch)
+
+	in.Protection.Checks.Contexts = append(buildOtherContextSlice(branch), context)
+
 	err = client_.BranchProtect(repo.Owner, repo.Name, *repo_.DefaultBranch, in)
 	if err != nil {
 		if g.URL == "https://github.com" {
@@ -236,14 +245,21 @@ func (g *Github) DelHook(user *model.User, repo *model.Repo, link string) error 
 	if len(branch.Protection.Checks.Contexts) == 0 {
 		return nil
 	}
+
+	branch.Protection.Checks.Contexts = buildOtherContextSlice(branch)
+
+	return client_.BranchProtect(repo.Owner, repo.Name, *repo_.DefaultBranch, branch)
+}
+
+// buildOtherContextSlice returns all contexts besides the one for LGTM
+func buildOtherContextSlice(branch *Branch) []string {
 	checks := []string{}
 	for _, check := range branch.Protection.Checks.Contexts {
 		if check != context {
 			checks = append(checks, check)
 		}
 	}
-	branch.Protection.Checks.Contexts = checks
-	return client_.BranchProtect(repo.Owner, repo.Name, *repo_.DefaultBranch, branch)
+	return checks
 }
 
 func (g *Github) GetComments(u *model.User, r *model.Repo, num int) ([]*model.Comment, error) {
@@ -300,12 +316,27 @@ func (g *Github) SetStatus(u *model.User, r *model.Repo, num int, ok bool) error
 }
 
 func (g *Github) GetHook(r *http.Request) (*model.Hook, error) {
-
-	// only process comment hooks
-	if r.Header.Get("X-Github-Event") != "issue_comment" {
-		return nil, nil
+	hook := &model.Hook{}
+	kind := r.Header.Get("X-Github-Event")
+	hook.Kind = kind
+	switch kind {
+	case "issue_comment":
+		issueComment, err := processIssueCommentHook(r)
+		if err != nil {
+			return nil, err
+		}
+		hook.IssueComment = issueComment
+	case "status":
+		status, err := processStatusHook(r)
+		if err != nil {
+			return nil, err
+		}
+		hook.Status = status
 	}
+	return hook, nil
+}
 
+func processIssueCommentHook(r *http.Request) (*model.IssueCommentHook, error) {
 	data := commentHook{}
 	err := json.NewDecoder(r.Body).Decode(&data)
 	if err != nil {
@@ -316,7 +347,7 @@ func (g *Github) GetHook(r *http.Request) (*model.Hook, error) {
 		return nil, nil
 	}
 
-	hook := new(model.Hook)
+	hook := new(model.IssueCommentHook)
 	hook.Issue = new(model.Issue)
 	hook.Issue.Number = data.Issue.Number
 	hook.Issue.Author = data.Issue.User.Login
@@ -329,4 +360,143 @@ func (g *Github) GetHook(r *http.Request) (*model.Hook, error) {
 	hook.Comment.Author = data.Comment.User.Login
 
 	return hook, nil
+}
+
+func processStatusHook(r *http.Request) (*model.StatusHook, error) {
+	data := statusHook{}
+	err := json.NewDecoder(r.Body).Decode(&data)
+	if err != nil {
+		return nil, err
+	}
+
+	log.Debug(data)
+
+	if data.State != "success" {
+		return nil, nil
+	}
+
+	hook := new(model.StatusHook)
+
+	hook.SHA = data.SHA
+
+	hook.Repo = new(model.Repo)
+	hook.Repo.Owner = data.Repository.Owner.Login
+	hook.Repo.Name = data.Repository.Name
+	hook.Repo.Slug = data.Repository.FullName
+
+	log.Debug(*hook)
+
+	return hook, nil
+}
+
+func (g *Github) GetPullRequestsForCommit(u *model.User, r *model.Repo, sha *string) ([]model.PullRequest, error) {
+	client := setupClient(g.API, u.Token)
+	fmt.Println("sha == ", sha, *sha)
+	issues, _, err := client.Search.Issues(fmt.Sprintf("%s&type=pr", *sha), &github.SearchOptions{
+		TextMatch: false,
+	})
+	if err != nil {
+		return nil, err
+	}
+	out := make([]model.PullRequest, len(issues.Issues))
+	for k, v := range issues.Issues {
+		pr, _, err := client.PullRequests.Get(r.Owner, r.Name, *v.Number)
+		if err != nil {
+			return nil, err
+		}
+
+		mergeable := true
+		if pr.Mergeable != nil {
+			mergeable = *pr.Mergeable
+		}
+
+		status, _, err := client.Repositories.GetCombinedStatus(r.Owner, r.Name, *sha, nil)
+		if err != nil {
+			return nil, err
+		}
+
+		out[k] = model.PullRequest{
+			Issue: model.Issue{
+				Number: *v.Number,
+				Title:  *v.Title,
+				Author: *v.User.Login,
+			},
+			Branch: model.Branch{
+				Name:      *pr.Head.Ref,
+				Status:    *status.State,
+				Mergeable: mergeable,
+			},
+		}
+	}
+	return out, nil
+}
+
+func (g *Github) GetBranchStatus(u *model.User, r *model.Repo, branch string) (*model.BranchStatus, error) {
+	client := setupClient(g.API, u.Token)
+	statuses, _, err := client.Repositories.GetCombinedStatus(r.Owner, r.Name, branch, nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return (*model.BranchStatus)(statuses.State), nil
+}
+
+func (g *Github) MergePR(u *model.User, r *model.Repo, pullRequest model.PullRequest) (*string, error) {
+	client := setupClient(g.API, u.Token)
+
+	result, _, err := client.PullRequests.Merge(r.Owner, r.Name, pullRequest.Number, "Merged by LGTM")
+	if err != nil {
+		return nil, err
+	}
+
+	if !(*result.Merged) {
+		return nil, errors.New(*result.Message)
+	}
+	return result.SHA, nil
+}
+
+func (g *Github) GetTagList(u *model.User, r *model.Repo) (model.TagList, error) {
+	client := setupClient(g.API, u.Token)
+
+	tags, _, err := client.Repositories.ListTags(r.Owner, r.Name, nil)
+	if err != nil {
+		return nil, err
+	}
+	out := make(model.TagList, len(tags))
+	for k, v := range tags {
+		out[k] = model.Tag(*v.Name)
+	}
+	return out, nil
+}
+
+func (g *Github) Tag(u *model.User, r *model.Repo, version *version.Version, sha *string) error {
+	client := setupClient(g.API, u.Token)
+
+	t := time.Now()
+	tag, _, err := client.Git.CreateTag(r.Owner, r.Name, &github.Tag{
+		Tag:     github.String(version.String()),
+		SHA:     sha,
+		Message: github.String("Tagged by LGTM"),
+		Tagger: &github.CommitAuthor{
+			Date:  &t,
+			Name:  github.String("LGTM"),
+			Email: github.String("LGTM@lgtm.co"),
+		},
+		Object: &github.GitObject{
+			SHA:  sha,
+			Type: github.String("commit"),
+		},
+	})
+
+	if err != nil {
+		return err
+	}
+	_, _, err = client.Git.CreateRef(r.Owner, r.Name, &github.Reference{
+		Ref: github.String("refs/tags/" + version.String()),
+		Object: &github.GitObject{
+			SHA: tag.SHA,
+		},
+	})
+
+	return err
 }

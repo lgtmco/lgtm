@@ -11,6 +11,8 @@ type Config struct {
 	Pattern         string `json:"pattern"           toml:"pattern"`
 	Team            string `json:"team"              toml:"team"`
 	SelfApprovalOff bool   `json:"self_approval_off" toml:"self_approval_off"`
+	DoMerge         bool   `json:"do_merge" toml:"do_merge"`
+	DoVersion       bool   `json:"do_version" toml:"do_version"`
 
 	re *regexp.Regexp
 }
@@ -31,7 +33,7 @@ func ParseConfigStr(data string) (*Config, error) {
 		c.Approvals = 2
 	}
 	if len(c.Pattern) == 0 {
-		c.Pattern = "(?i)LGTM"
+		c.Pattern = `(?i)LGTM\s*(\S*)`
 	}
 	if len(c.Team) == 0 {
 		c.Team = "MAINTAINERS"

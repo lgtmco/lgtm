@@ -59,12 +59,12 @@ func DeleteHook(client *github.Client, owner, name, url string) error {
 	return err
 }
 
-// CreateHook is a heper function that creates a post-commit hook
+// CreateHook is a helper function that creates a post-commit hook
 // for the specified repository.
 func CreateHook(client *github.Client, owner, name, url string) (*github.Hook, error) {
 	var hook = new(github.Hook)
 	hook.Name = github.String("web")
-	hook.Events = []string{"issue_comment"}
+	hook.Events = []string{"issue_comment", "status"}
 	hook.Config = map[string]interface{}{}
 	hook.Config["url"] = url
 	hook.Config["content_type"] = "json"
