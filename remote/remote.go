@@ -5,9 +5,9 @@ package remote
 import (
 	"net/http"
 
+	"github.com/hashicorp/go-version"
 	"github.com/lgtmco/lgtm/model"
 	"golang.org/x/net/context"
-	"github.com/hashicorp/go-version"
 )
 
 type Remote interface {

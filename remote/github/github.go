@@ -7,13 +7,13 @@ import (
 	"strings"
 	"time"
 
+	"errors"
 	log "github.com/Sirupsen/logrus"
 	"github.com/google/go-github/github"
+	"github.com/hashicorp/go-version"
 	"github.com/lgtmco/lgtm/model"
 	"github.com/lgtmco/lgtm/shared/httputil"
 	"golang.org/x/oauth2"
-	"github.com/hashicorp/go-version"
-	"errors"
 )
 
 // name of the status message posted to GitHub
@@ -205,7 +205,7 @@ func (g *Github) SetHook(user *model.User, repo *model.Repo, link string) error 
 	/*
 		JCB 04/21/16 confirmed with Github support -- must specify all existing contexts when
 		 adding a new one, otherwise the other contexts will be removed.
-	 */
+	*/
 	client_ := NewClientToken(g.API, user.Token)
 	branch, _ := client_.Branch(repo.Owner, repo.Name, *repo_.DefaultBranch)
 
@@ -383,7 +383,7 @@ func (g *Github) GetStatusHook(r *http.Request) (*model.StatusHook, error) {
 func (g *Github) GetPullRequestsForCommit(u *model.User, r *model.Repo, sha *string) ([]model.PullRequest, error) {
 	client := setupClient(g.API, u.Token)
 	fmt.Println("sha == ", sha, *sha)
-	issues, _, err := client.Search.Issues(fmt.Sprintf("%s&type=pr", *sha), &github.SearchOptions {
+	issues, _, err := client.Search.Issues(fmt.Sprintf("%s&type=pr", *sha), &github.SearchOptions{
 		TextMatch: false,
 	})
 	if err != nil {
@@ -396,7 +396,7 @@ func (g *Github) GetPullRequestsForCommit(u *model.User, r *model.Repo, sha *str
 			return nil, err
 		}
 
-		mergeable:= true
+		mergeable := true
 		if pr.Mergeable != nil {
 			mergeable = *pr.Mergeable
 		}
@@ -409,14 +409,13 @@ func (g *Github) GetPullRequestsForCommit(u *model.User, r *model.Repo, sha *str
 		out[k] = model.PullRequest{
 			Issue: model.Issue{
 				Number: *v.Number,
-				Title: *v.Title,
+				Title:  *v.Title,
 				Author: *v.User.Login,
 			},
-			Branch:  model.Branch {
-				Name: *pr.Head.Ref,
+			Branch: model.Branch{
+				Name:         *pr.Head.Ref,
 				BranchStatus: *status.State,
-				Mergeable: mergeable,
-
+				Mergeable:    mergeable,
 			},
 		}
 	}

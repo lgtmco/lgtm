@@ -8,10 +8,10 @@ import (
 	"github.com/lgtmco/lgtm/remote"
 	"github.com/lgtmco/lgtm/store"
 
+	"fmt"
 	log "github.com/Sirupsen/logrus"
 	"github.com/gin-gonic/gin"
 	"github.com/hashicorp/go-version"
-	"fmt"
 )
 
 func Hook(c *gin.Context) {
@@ -31,7 +31,7 @@ func Hook(c *gin.Context) {
 		c.String(500, "Error parsing status hook. %s", err)
 		return
 	}
-	if statusHook !=  nil {
+	if statusHook != nil {
 		processStatusHook(c, statusHook)
 	}
 
@@ -61,8 +61,7 @@ func processStatusHook(c *gin.Context, hook *model.StatusHook) {
 	}
 
 	if !config.DoMerge {
-		c.IndentedJSON(200, gin.H{
-		})
+		c.IndentedJSON(200, gin.H{})
 		return
 	}
 
@@ -109,13 +108,13 @@ func processStatusHook(c *gin.Context, hook *model.StatusHook) {
 				continue
 			}
 
-			foundVersion := getMaxVersionComment(config, maintainer, v.Issue,comments)
+			foundVersion := getMaxVersionComment(config, maintainer, v.Issue, comments)
 
 			if foundVersion != nil && foundVersion.GreaterThan(maxVer) {
 				maxVer = foundVersion
 			} else {
 				maxParts := maxVer.Segments()
-				maxVer, _ = version.NewVersion(fmt.Sprintf("%d.%d.%d", maxParts[0], maxParts[1], maxParts[2] + 1))
+				maxVer, _ = version.NewVersion(fmt.Sprintf("%d.%d.%d", maxParts[0], maxParts[1], maxParts[2]+1))
 			}
 
 			err = remote.Tag(c, user, repo, maxVer, sha)
@@ -129,7 +128,7 @@ func processStatusHook(c *gin.Context, hook *model.StatusHook) {
 	log.Debugf("processed status for %s. received %v ", repo.Slug, hook)
 
 	c.IndentedJSON(200, gin.H{
-		"merged":    merged,
+		"merged":   merged,
 		"versions": vers,
 	})
 }

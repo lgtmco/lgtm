@@ -1,8 +1,8 @@
 package model
 
 type StatusHook struct {
-	SHA string
-	Repo    *Repo
+	SHA  string
+	Repo *Repo
 }
 
 type PullRequest struct {

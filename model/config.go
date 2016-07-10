@@ -11,10 +11,10 @@ type Config struct {
 	Pattern         string `json:"pattern"           toml:"pattern"`
 	Team            string `json:"team"              toml:"team"`
 	SelfApprovalOff bool   `json:"self_approval_off" toml:"self_approval_off"`
-	DoMerge         bool `json:"do_merge" toml:"do_merge"`
-	DoVersion       bool `json:"do_version" toml:"do_version"`
+	DoMerge         bool   `json:"do_merge" toml:"do_merge"`
+	DoVersion       bool   `json:"do_version" toml:"do_version"`
 
-	re              *regexp.Regexp
+	re *regexp.Regexp
 }
 
 // ParseConfig parses a projects .lgtm file
