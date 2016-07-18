@@ -4,6 +4,7 @@ import (
 	"regexp"
 
 	"github.com/BurntSushi/toml"
+	"github.com/ianschenck/envflag"
 )
 
 type Config struct {
@@ -14,6 +15,13 @@ type Config struct {
 
 	re *regexp.Regexp
 }
+
+var (
+	approvals = envflag.Int("LGTM_APPROVALS", 2, "")
+	pattern = envflag.String("LGTM_PATTERN", "(?i)LGTM", "")
+	team = envflag.String("LGTM_TEAM", "MAINTAINERS", "")
+	selfApprovalOff = envflag.Bool("LGTM_SELF_APPROVAL_OFF", false, "")
+)
 
 // ParseConfig parses a projects .lgtm file
 func ParseConfig(data []byte) (*Config, error) {
@@ -28,14 +36,18 @@ func ParseConfigStr(data string) (*Config, error) {
 		return nil, err
 	}
 	if c.Approvals == 0 {
-		c.Approvals = 2
+		c.Approvals = *approvals
 	}
 	if len(c.Pattern) == 0 {
-		c.Pattern = "(?i)LGTM"
+		c.Pattern = *pattern
 	}
 	if len(c.Team) == 0 {
-		c.Team = "MAINTAINERS"
+		c.Team = *team
 	}
+	if c.SelfApprovalOff == false {
+		c.SelfApprovalOff = *selfApprovalOff
+	}
+
 	c.re, err = regexp.Compile(c.Pattern)
 	return c, err
 }
