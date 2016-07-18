@@ -1,11 +1,12 @@
-build:
+pipeline:
   test:
     image: golang:1.6
     commands:
       - make deps
       - make gen_assets gen_migration
       - make test
-  dist:
+
+  build:
     image: golang:1.6
     commands:
      - make test_mysql
@@ -13,21 +14,17 @@ build:
     when:
       event: push
 
-compose:
+  publish:
+    docker:
+      repo: lgtm/lgtm
+      tag: [latest, 1.0.0]
+      when:
+        branch: master
+        event: push
+
+services:
   mysql:
     image: mysql:5.6.27
     environment:
       - MYSQL_DATABASE=test
       - MYSQL_ALLOW_EMPTY_PASSWORD=yes
-
-#publish:
-#  docker:
-#    username: drone
-#    password: $$DOCKER_PASS
-#    email: $$DOCKER_EMAIL
-#    repo: lgtm/lgtm
-#    tag:
-#      - "latest"
-#      - "1.0.0"
-#    when:
-#      branch: master
