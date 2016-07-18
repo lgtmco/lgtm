@@ -18,13 +18,12 @@ pipeline:
     when:
       event: push
 
-  publish:
-    docker:
-      repo: lgtm/lgtm
-      tag: [latest, 1.0.0]
-      when:
-        branch: master
-        event: push
+  docker:
+    repo: lgtm/lgtm
+    tag: [latest, 1.0.0]
+    when:
+      branch: master
+      event: push
 
 services:
   mysql:
