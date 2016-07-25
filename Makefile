@@ -21,7 +21,7 @@ gen_migration:
 	go generate github.com/lgtmco/lgtm/store/migration
 
 build:
-	# do not staticly link sqlite. Doesn't work on OS X and breaks DNS resolution on linux
+	@# do not staticly link sqlite. Doesn't work on OS X and breaks DNS resolution on linux
 	go build --ldflags '-X github.com/lgtmco/lgtm/version.VersionDev=$(CI_BUILD_NUMBER)' -o lgtm
 
 test:
