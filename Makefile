@@ -21,7 +21,8 @@ gen_migration:
 	go generate github.com/lgtmco/lgtm/store/migration
 
 build:
-	go build --ldflags '-extldflags "-static" -X github.com/lgtmco/lgtm/version.VersionDev=$(CI_BUILD_NUMBER)' -o lgtm
+	# do not staticly link sqlite. Doesn't work on OS X and breaks DNS resolution on linux
+	go build --ldflags '-X github.com/lgtmco/lgtm/version.VersionDev=$(CI_BUILD_NUMBER)' -o lgtm
 
 test:
 	@for PKG in $(PACKAGES); do go test -v -cover -coverprofile $$GOPATH/src/$$PKG/coverage.out $$PKG; done;
