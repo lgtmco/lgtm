@@ -14,7 +14,8 @@ import (
 )
 
 var (
-	addr = envflag.String("SERVER_ADDR", ":8000", "")
+	port = envflag.String("PORT", "8000", "")
+	addr = envflag.String("SERVER_ADDR", "", "")
 	cert = envflag.String("SERVER_CERT", "", "")
 	key  = envflag.String("SERVER_KEY", "", "")
 
@@ -40,11 +41,11 @@ func main() {
 
 	if *cert != "" {
 		logrus.Fatal(
-			http.ListenAndServeTLS(*addr, *cert, *key, handler),
+			http.ListenAndServeTLS(*addr + ":" + *port, *cert, *key, handler),
 		)
 	} else {
 		logrus.Fatal(
-			http.ListenAndServe(*addr, handler),
+			http.ListenAndServe(*addr + ":" + *port, handler),
 		)
 	}
 }

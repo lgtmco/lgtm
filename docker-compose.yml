@@ -1,0 +1,22 @@
+version: '2'
+services:
+  app:
+    build: .
+    ports:
+      - 8000:8000
+    depends_on:
+      - mysql
+    links:
+      - mysql
+    env_file: .env
+    environment:
+      - DATABASE_DRIVER=mysql
+      - DATABASE_DATASOURCE=root:lgtm@tcp(mysql:3306)/lgtm?parseTime=true
+      - GITHUB_URL=https://github.com
+      - GITHUB_SCOPE=user:email,read:org,repo
+      - DEBUG=1
+  mysql:
+    image: mysql
+    environment:
+      MYSQL_ROOT_PASSWORD: lgtm
+      MYSQL_DATABASE: lgtm
