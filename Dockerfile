@@ -11,6 +11,7 @@ EXPOSE 8000
 
 ENV DATABASE_DRIVER=sqlite3
 ENV DATABASE_DATASOURCE=/var/lib/lgtm/lgtm.sqlite
+ENV GODEBUG=netdns=go
 
 ADD lgtm /lgtm
 ENTRYPOINT ["/lgtm"]
