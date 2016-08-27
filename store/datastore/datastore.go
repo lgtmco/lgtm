@@ -111,7 +111,5 @@ func setupMeddler(driver string) {
 		meddler.Default = meddler.SQLite
 	case "mysql":
 		meddler.Default = meddler.MySQL
-	case "postgres":
-		meddler.Default = meddler.PostgreSQL
 	}
 }
