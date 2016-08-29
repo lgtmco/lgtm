@@ -45,7 +45,7 @@ type Remote interface {
 	GetContents(*model.User, *model.Repo, string) ([]byte, error)
 
 	// SetStatus adds or updates the pull request status in the remote system.
-	SetStatus(*model.User, *model.Repo, int, bool) error
+	SetStatus(*model.User, *model.Repo, int, int, int) error
 
 	// GetHook gets the hook from the http Request.
 	GetHook(r *http.Request) (*model.Hook, error)
@@ -108,8 +108,8 @@ func DelHook(c context.Context, u *model.User, r *model.Repo, hook string) error
 }
 
 // SetStatus adds or updates the pull request status in the remote system.
-func SetStatus(c context.Context, u *model.User, r *model.Repo, num int, ok bool) error {
-	return FromContext(c).SetStatus(u, r, num, ok)
+func SetStatus(c context.Context, u *model.User, r *model.Repo, num, granted, required int) error {
+	return FromContext(c).SetStatus(u, r, num, granted, required)
 }
 
 // GetHook gets the hook from the http Request.

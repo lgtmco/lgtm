@@ -274,7 +274,7 @@ func (g *Github) GetContents(u *model.User, r *model.Repo, path string) ([]byte,
 	return content.Decode()
 }
 
-func (g *Github) SetStatus(u *model.User, r *model.Repo, num int, ok bool) error {
+func (g *Github) SetStatus(u *model.User, r *model.Repo, num, granted, required int) error {
 	client := setupClient(g.API, u.Token)
 
 	pr, _, err := client.PullRequests.Get(r.Owner, r.Name, num)
@@ -282,11 +282,12 @@ func (g *Github) SetStatus(u *model.User, r *model.Repo, num int, ok bool) error
 		return err
 	}
 
-	status := "pending"
-	desc := "this commit is pending approval"
-	if ok {
-		status = "success"
-		desc = "this commit looks good"
+	status := "success"
+	desc := "this commit looks good"
+
+	if granted < required {
+		status = "pending"
+		desc = fmt.Sprintf("%d of %d required approvals granted", granted, required)
 	}
 
 	data := github.RepoStatus{
