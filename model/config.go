@@ -11,6 +11,7 @@ type Config struct {
 	Approvals       int    `json:"approvals"         toml:"approvals"`
 	Pattern         string `json:"pattern"           toml:"pattern"`
 	Team            string `json:"team"              toml:"team"`
+	ApprovalAlg     string `json:"approval_algorithm" toml:"approval_algorithm"`
 	SelfApprovalOff bool   `json:"self_approval_off" toml:"self_approval_off"`
 
 	re *regexp.Regexp
@@ -20,6 +21,7 @@ var (
 	approvals = envflag.Int("LGTM_APPROVALS", 2, "")
 	pattern = envflag.String("LGTM_PATTERN", "(?i)LGTM", "")
 	team = envflag.String("LGTM_TEAM", "MAINTAINERS", "")
+	approvalAlg = envflag.String("LGTM_APPROVAL_ALGORITHM", "simple", "")
 	selfApprovalOff = envflag.Bool("LGTM_SELF_APPROVAL_OFF", false, "")
 )
 
@@ -43,6 +45,9 @@ func ParseConfigStr(data string) (*Config, error) {
 	}
 	if len(c.Team) == 0 {
 		c.Team = *team
+	}
+	if len(c.ApprovalAlg) == 0 {
+		c.ApprovalAlg = *approvalAlg
 	}
 	if c.SelfApprovalOff == false {
 		c.SelfApprovalOff = *selfApprovalOff

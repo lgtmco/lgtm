@@ -4,6 +4,7 @@ import (
 	"net/http"
 	"time"
 
+	_ "github.com/lgtmco/lgtm/approval/org"
 	"github.com/lgtmco/lgtm/router"
 	"github.com/lgtmco/lgtm/router/middleware"
 
