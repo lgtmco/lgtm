@@ -78,7 +78,7 @@ func Hook(c *gin.Context) {
 	}
 	approvers := getApprovers(config, maintainer, hook.Issue, comments)
 	approved := len(approvers) >= config.Approvals
-	err = remote.SetStatus(c, user, repo, hook.Issue.Number, approved)
+	err = remote.SetStatus(c, user, repo, hook.Issue.Number, len(approvers), config.Approvals)
 	if err != nil {
 		log.Errorf("Error setting status for %s pr %d. %s", repo.Slug, hook.Issue.Number, err)
 		c.String(500, "Error setting status. %s.", err)
