@@ -37,5 +37,6 @@ func (prh *pullRequestHook) toHook() *model.Hook {
 }
 
 func (prh *pullRequestHook) analysable() bool {
-	return prh.Action == "opened" // only care about opening PRs...
+	return prh.Action == "opened" ||
+		prh.Action == "synchronize"
 }
