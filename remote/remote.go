@@ -21,7 +21,7 @@ type Remote interface {
 	GetTeams(*model.User) ([]*model.Team, error)
 
 	// GetMembers gets a team member list from the remote system.
-	GetMembers(*model.User, string) ([]*model.Member, error)
+	GetMembers(*model.User, string, string) ([]*model.Member, error)
 
 	// GetRepo gets a repository from the remote system.
 	GetRepo(*model.User, string, string) (*model.Repo, error)
@@ -68,8 +68,8 @@ func GetTeams(c context.Context, u *model.User) ([]*model.Team, error) {
 }
 
 // GetMembers gets a team members list from the remote system.
-func GetMembers(c context.Context, u *model.User, team string) ([]*model.Member, error) {
-	return FromContext(c).GetMembers(u, team)
+func GetMembers(c context.Context, u *model.User, owner string, maintainers string) ([]*model.Member, error) {
+	return FromContext(c).GetMembers(u, owner, maintainers)
 }
 
 // GetRepo gets a repository from the remote system.

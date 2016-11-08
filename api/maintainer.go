@@ -24,10 +24,19 @@ func GetMaintainer(c *gin.Context) {
 		c.AbortWithStatus(404)
 		return
 	}
+
+	rcfile, _ := remote.GetContents(c, user, repo, ".lgtm")
+	config, err := model.ParseConfig(rcfile)
+	if err != nil {
+		log.Errorf("Error parsing .lgtm file for %s. %s", repo.Slug, err)
+		c.String(500, "Error parsing .lgtm file. %s.", err)
+		return
+	}
+
 	file, err := remote.GetContents(c, user, repo, "MAINTAINERS")
 	if err != nil {
 		log.Debugf("no MAINTAINERS file for %s. Checking for team members.", repo.Slug)
-		members, merr := cache.GetMembers(c, user, repo.Owner)
+		members, merr := cache.GetMembers(c, user, repo.Owner, config.Team)
 		if merr != nil {
 			log.Errorf("Error getting repository %s. %s", repo.Slug, err)
 			log.Errorf("Error getting org members %s. %s", repo.Owner, merr)
