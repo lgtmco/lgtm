@@ -123,7 +123,7 @@ func (c *Client) stream(rawurl, method string, in, out interface{}) (io.ReadClos
 		}
 	}
 
-	// creates a new http request to bitbucket.
+	// creates a new http request to GitHub.
 	req, err := http.NewRequest(method, uri.String(), buf)
 	if err != nil {
 		return nil, err
