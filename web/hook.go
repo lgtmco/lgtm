@@ -49,7 +49,7 @@ func Hook(c *gin.Context) {
 	file, err := remote.GetContents(c, user, repo, "MAINTAINERS")
 	if err != nil {
 		log.Debugf("no MAINTAINERS file for %s. Checking for team members.", repo.Slug)
-		members, merr := cache.GetMembers(c, user, repo.Owner)
+		members, merr := cache.GetMembers(c, user, repo.Owner, rcfile.Team)
 		if merr != nil {
 			log.Errorf("Error getting repository %s. %s", repo.Slug, err)
 			log.Errorf("Error getting org members %s. %s", repo.Owner, merr)

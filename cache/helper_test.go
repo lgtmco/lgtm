@@ -112,8 +112,8 @@ func TestHelper(t *testing.T) {
 		})
 
 		g.It("Should set and get members", func() {
-			r.On("GetMembers", fakeUser, "drone").Return(fakeMembers, nil).Once()
-			p, err := GetMembers(c, fakeUser, "drone")
+			r.On("GetMembers", fakeUser, "drone", "maintainers").Return(fakeMembers, nil).Once()
+			p, err := GetMembers(c, fakeUser, "drone", "maintainers")
 			g.Assert(p).Equal(fakeMembers)
 			g.Assert(err).Equal(nil)
 		})
@@ -122,15 +122,15 @@ func TestHelper(t *testing.T) {
 			key := "members:drone"
 
 			Set(c, key, fakeMembers)
-			r.On("GetMembers", fakeUser, "drone").Return(nil, fakeErr).Once()
-			p, err := GetMembers(c, fakeUser, "drone")
+			r.On("GetMembers", fakeUser, "drone", "maintainers").Return(nil, fakeErr).Once()
+			p, err := GetMembers(c, fakeUser, "drone", "maintainers")
 			g.Assert(p).Equal(fakeMembers)
 			g.Assert(err).Equal(nil)
 		})
 
 		g.It("Should get member error", func() {
-			r.On("GetMembers", fakeUser, "drone").Return(nil, fakeErr).Once()
-			p, err := GetMembers(c, fakeUser, "drone")
+			r.On("GetMembers", fakeUser, "drone", "maintainers").Return(nil, fakeErr).Once()
+			p, err := GetMembers(c, fakeUser, "drone", "maintainers")
 			g.Assert(p == nil).IsTrue()
 			g.Assert(err).Equal(fakeErr)
 		})

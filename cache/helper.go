@@ -75,9 +75,9 @@ func GetPerm(c context.Context, user *model.User, owner, name string) (*model.Pe
 }
 
 // GetMembers returns the team members from the cache.
-func GetMembers(c context.Context, user *model.User, team string) ([]*model.Member, error) {
+func GetMembers(c context.Context, user *model.User, owner string, maintainers string) ([]*model.Member, error) {
 	key := fmt.Sprintf("members:%s",
-		team,
+		owner,
 	)
 	// if we fetch from the cache we can return immediately
 	val, err := FromContext(c).Get(key)
@@ -86,7 +86,7 @@ func GetMembers(c context.Context, user *model.User, team string) ([]*model.Memb
 	}
 	// else we try to grab from the remote system and
 	// populate our cache.
-	members, err := remote.GetMembers(c, user, team)
+	members, err := remote.GetMembers(c, user, owner, maintainers)
 	if err != nil {
 		return nil, err
 	}
