@@ -93,15 +93,15 @@ func (g *Github) GetTeams(user *model.User) ([]*model.Team, error) {
 	return teams, nil
 }
 
-func (g *Github) GetMembers(user *model.User, team string) ([]*model.Member, error) {
+func (g *Github) GetMembers(user *model.User, owner string, maintainers string) ([]*model.Member, error) {
 	client := setupClient(g.API, user.Token)
-	teams, _, err := client.Organizations.ListTeams(team, &github.ListOptions{PerPage: 100})
+	teams, _, err := client.Organizations.ListTeams(owner, &github.ListOptions{PerPage: 100})
 	if err != nil {
 		return nil, fmt.Errorf("Error accessing team list. %s", err)
 	}
 	var id int
 	for _, team := range teams {
-		if strings.ToLower(*team.Name) == "maintainers" {
+		if strings.ToLower(*team.Name) == strings.ToLower(maintainers) {
 			id = *team.ID
 			break
 		}

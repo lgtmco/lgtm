@@ -96,12 +96,12 @@ func (_m *Remote) GetHook(r *http.Request) (*model.Hook, error) {
 }
 
 // GetMembers provides a mock function with given fields: _a0, _a1
-func (_m *Remote) GetMembers(_a0 *model.User, _a1 string) ([]*model.Member, error) {
-	ret := _m.Called(_a0, _a1)
+func (_m *Remote) GetMembers(_a0 *model.User, _a1 string, _a2 string) ([]*model.Member, error) {
+	ret := _m.Called(_a0, _a1, _a2)
 
 	var r0 []*model.Member
-	if rf, ok := ret.Get(0).(func(*model.User, string) []*model.Member); ok {
-		r0 = rf(_a0, _a1)
+	if rf, ok := ret.Get(0).(func(*model.User, string, string) []*model.Member); ok {
+		r0 = rf(_a0, _a1, _a2)
 	} else {
 		if ret.Get(0) != nil {
 			r0 = ret.Get(0).([]*model.Member)
@@ -109,8 +109,8 @@ func (_m *Remote) GetMembers(_a0 *model.User, _a1 string) ([]*model.Member, erro
 	}
 
 	var r1 error
-	if rf, ok := ret.Get(1).(func(*model.User, string) error); ok {
-		r1 = rf(_a0, _a1)
+	if rf, ok := ret.Get(1).(func(*model.User, string, string) error); ok {
+		r1 = rf(_a0, _a1, _a2)
 	} else {
 		r1 = ret.Error(1)
 	}
