@@ -34,3 +34,7 @@ make build   # Build the binary
 ```
 
 If you are having trouble building this project please reference its .drone.yml file. Everything you need to know about building LGTM is defined in that file.
+
+### Disclaimer
+
+LGTM is a trademark of Semmle, Ltd (www.lgtm.com). The use of the LGTM mark and name on this page shall not imply any affiliation with or endorsement by Semmle, Ltd.
