@@ -301,33 +301,36 @@ func (g *Github) SetStatus(u *model.User, r *model.Repo, num, granted, required 
 }
 
 func (g *Github) GetHook(r *http.Request) (*model.Hook, error) {
-
-	// only process comment hooks
-	if r.Header.Get("X-Github-Event") != "issue_comment" {
+	eventType := r.Header.Get("X-Github-Event")
+	if eventType == "issue_comment" {
+		return getCommentHook(r)
+	} else if eventType == "pull_request" {
+		return getPRHook(r)
+	} else {
 		return nil, nil
 	}
+}
 
+func getCommentHook(r *http.Request) (*model.Hook, error) {
 	data := commentHook{}
-	err := json.NewDecoder(r.Body).Decode(&data)
-	if err != nil {
+	defer r.Body.Close()
+	if err := json.NewDecoder(r.Body).Decode(&data); err != nil {
 		return nil, err
 	}
-
 	if len(data.Issue.PullRequest.Link) == 0 {
 		return nil, nil
 	}
+	return data.toHook(), nil
+}
 
-	hook := new(model.Hook)
-	hook.Issue = new(model.Issue)
-	hook.Issue.Number = data.Issue.Number
-	hook.Issue.Author = data.Issue.User.Login
-	hook.Repo = new(model.Repo)
-	hook.Repo.Owner = data.Repository.Owner.Login
-	hook.Repo.Name = data.Repository.Name
-	hook.Repo.Slug = data.Repository.FullName
-	hook.Comment = new(model.Comment)
-	hook.Comment.Body = data.Comment.Body
-	hook.Comment.Author = data.Comment.User.Login
-
-	return hook, nil
+func getPRHook(r *http.Request) (*model.Hook, error) {
+	data := pullRequestHook{}
+	defer r.Body.Close()
+	if err := json.NewDecoder(r.Body).Decode(&data); err != nil {
+		return nil, err
+	}
+	if !data.analysable() {
+		return nil, nil
+	}
+	return data.toHook(), nil
 }

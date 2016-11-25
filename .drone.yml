@@ -20,7 +20,7 @@ pipeline:
 
   docker:
     repo: lgtm/lgtm
-    tag: [latest, 1.0.0]
+    tag: [latest, 1.1.0]
     when:
       branch: master
       event: push
