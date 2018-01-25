@@ -1,6 +1,6 @@
 [![Build Status](http://beta.drone.io/api/badges/lgtmco/lgtm/status.svg)](http://beta.drone.io/lgtmco/lgtm)
 
-LGTM is a simple pull request approval system using GitHub protected branches and maintainers files. Pull requests are locked and cannot be merged until the minimum number of approvals are received. Project maintainers can indicate their approval by commenting on the pull request and including LGTM (looks good to me) in their approval text. For more information please see the documentation at https://lgtm.co/docs
+LGTM is a simple pull request approval system using GitHub protected branches and maintainers files. Pull requests are locked and cannot be merged until the minimum number of approvals are received. Project maintainers can indicate their approval by commenting on the pull request and including LGTM (looks good to me) in their approval text. For more information please see the documentation at https://lgtm.com/docs
 
 ### Status
 
@@ -12,7 +12,7 @@ LGTM is meant to be extremely simple and focused and is largely considered featu
 
 ### Setup
 
-Please see our [installation guide](https://lgtm.co/docs/install/) to install the official Docker image.
+Please see our [installation guide](https://lgtm.com/docs/install/) to install the official Docker image.
 
 ### Build
 
